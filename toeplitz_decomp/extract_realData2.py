@@ -41,12 +41,12 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 	print ("Error sizes or offsets don't match")
 	sys.exit(1)
  
-#a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
+a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
 
 # load normal array
 #data = np.fromfile('C:\Users\Visal LeSok\Desktop\script\simulated_test\dynamic_spectrum_257_freq_00_f0326.5.bin',dtype=np.complex).reshape(-1,660)
-a_f = np.load(sys.argv[1])
-a = np.copy(a_f)
+#a_f = np.load(sys.argv[1])
+#a = np.copy(a_f)
 
 #a_f = np.fromfile(sys.argv[1],dtype=np.complex).reshape(-1,660)
 #print a_f.shape
@@ -70,7 +70,7 @@ a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
 print (a_input)
 
 plt.figure()
-plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.colorbar()
 plt.title(r"Dynamic Spectrum: Input")
 plt.ylabel(r"Time")
@@ -79,7 +79,7 @@ plt.savefig('dyn_spec_input.png')
 plt.close()
 
 plt.figure()
-plt.imshow(a_input.real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow(a_input.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.colorbar()
 plt.title(r"Dynamic Spectrum: First Padding")
 plt.ylabel(r"Time")
@@ -111,12 +111,12 @@ print (int(round(sizem/2.)))
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
 plt.subplot(1,2,1)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
 plt.subplot(1,2,2)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.savefig('2.png') 
 if debug:
 	print (a_input,"after shift")
@@ -136,14 +136,14 @@ if debug:
 
 plt.figure(figsize=(12,6))
 plt.subplot(1,2,1)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.colorbar()
 plt.title(r"Conjugate Spectrum: Rooting and Squaring")
 plt.ylabel(r"Lag")
 plt.xlabel(r"Dopp Freq")
 
 plt.subplot(1,2,2)
-plt.imshow(np.fft.ifft2(a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow(np.fft.ifft2(a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.colorbar()
 plt.title(r"Dynamic Spectrum: Rooting and Squaring")
 plt.ylabel(r"Time")
@@ -190,7 +190,7 @@ output = np.memmap(output_file, dtype='complex', mode='w+', shape=(int(meff_f/2)
 output[:,:]=input_f[:meff_f,:]
 
 plt.figure()
-plt.imshow(output.real, aspect='auto', interpolation='nearest', origin='lower', cmap='viridis')
+plt.imshow(output.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.colorbar()
 plt.savefig('toep.png')
 plt.close()
