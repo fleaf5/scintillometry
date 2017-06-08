@@ -27,12 +27,23 @@ The format of the directory name is:
 
 gate0\_numblock\_(n)\_meff\_(mx2)\_offsetn\_(offsetn)\_offsetm\_(offsetm)
 
-Note that the value of m is doubled in the directory name, but you must use the original value of m when you perform the decomposition [unverified].
+Note that the value of m is doubled in the directory name, but you must use the original value of m when you perform the decomposition.
+
+
+### Performing decomposition ###
+Proper instructions coming soon.
+
+Refer to https://eor.cita.utoronto.ca/penwiki/User:Sufkes#Successful_trial_decomposition_on_BGQ for an example of a decomposition done on the BGQ.
+
 
 ### Plotting results ###
 
-The factorized toeplitz matrix is located in the ./results directory under a npy file with the \_uc.npy at the end. 
+According to Visal, the module 'reconstruct' in toeplitz_scint.py can be used to plot results. I have not tested this. 
 
-The format is 
+Visal also used the program plot_simulated.py to plot results obtained from the decomposition alongsize simulated results. This requires a separate calculation of simulated results. I have not tested this.
 
-$ python plot_simulated.py bnumofrows numofcolms offsetn offsetm
+Aladdin's GitHub repository contains programs plot_simulated.py and plot_real.py, which are not in my repository. I have not tested these.
+
+### Description of scripts ###
+
+extract_realData2.py: Splits raw dynamic spectrum into n blocks, saving each in a separate .npy file. 
