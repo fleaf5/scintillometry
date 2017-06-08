@@ -1,6 +1,0 @@
-BGQ Test 2
-
-# On home PC:
-python extract_realData2.py gb057_1.input_baseline258_freq_03_pol_all.rebint.1.rebined 2048 330 0 0 4 4
-
-# On BGQ
