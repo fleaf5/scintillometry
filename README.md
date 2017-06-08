@@ -40,9 +40,3 @@ Visal says the module 'reconstruct' in toeplitz_scint.py can be used to plot res
 Visal used the program plot_simulated.py to plot results obtained from the decomposition alongside simulated results. This requires a separate calculation of simulated results. I have not tested this.
 
 Aladdin's GitHub repository contains programs plot_simulated.py and plot_real.py, which are not in my repository. I have not tested these.
-
-### Description of scripts ###
-
-extract_realData2.py: Splits raw dynamic spectrum into n blocks, saving each in a separate .npy file. 
-
-more coming soon.
