@@ -2,20 +2,17 @@
 
 ### Extracting Data from your binned file ###
 
-To extract binned data, use extract_realData2.py
+To extract binned data, use extract_realData2.py, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
-The program extract_realData2.py requires Python 2.7, NumPy, SciPy, and Matplotlib. 
-
-The recommendation is to extract data on personal computer, and then move the extracted data to SciNet/BGQ (extraction on SciNet/BGQ has not been tested).
+The recommendation is to extract data on a personal computer, then move the extracted data to SciNet/BGQ.
 
 To extract, use the format:
 
 $ python extract_realData2.py binnedDataFile numofrows numofcolms offsetn offsetm n m
 
-where binnedDataFile is the raw data you wish to extract (must be in the same directory as extract_realData2.py). n is the number of blocks (or the number of frequency bins) and m is the size of each block (or the number of time bins). n and m refer to the size of the raw data, and must be set correctly for proper extraction. The remaining arguments apply to the extracted dynamic spectrum, and can be set to desired values. offsetn and offsetm are the lower bounds of the frequency and time bins, respectively [unverifed]. numofrows 
-and numofcolms are the total number of frequency and time bins.
+where binnedDataFile is the raw data you wish to extract (must be in the same directory as extract_realData2.py). n is the number of blocks (or the number of frequency bins) and m is the size of each block (or the number of time bins). n and m refer to the size of the raw data, and must be set correctly for proper extraction. The remaining arguments apply to the extracted dynamic spectrum, and can be set to desired values. offsetn and offsetm are the lower bounds of the frequency and time bins, respectively. numofrows and numofcolms are the total number of frequency and time bins.
 
-So, for example, if you want numofrows= 2048, numofcols=330, offsetn= 0, offsetm = 140, n=4, m=8, use the call:
+For example, if you want numofrows= 2048, numofcols=330, offsetn= 0, offsetm = 140, n=4, m=8, use the call:
 
 python extract_realData2.py gb057_1.input_baseline258_freq_03_pol_all.rebint.1.rebined 2048 330 0 140 4 8
 
@@ -38,12 +35,14 @@ Refer to https://eor.cita.utoronto.ca/penwiki/User:Sufkes#Successful_trial_decom
 
 ### Plotting results ###
 
-According to Visal, the module 'reconstruct' in toeplitz_scint.py can be used to plot results. I have not tested this. 
+Visal says the module 'reconstruct' in toeplitz_scint.py can be used to plot results. I have not tested this. 
 
-Visal also used the program plot_simulated.py to plot results obtained from the decomposition alongsize simulated results. This requires a separate calculation of simulated results. I have not tested this.
+Visal used the program plot_simulated.py to plot results obtained from the decomposition alongside simulated results. This requires a separate calculation of simulated results. I have not tested this.
 
 Aladdin's GitHub repository contains programs plot_simulated.py and plot_real.py, which are not in my repository. I have not tested these.
 
 ### Description of scripts ###
 
 extract_realData2.py: Splits raw dynamic spectrum into n blocks, saving each in a separate .npy file. 
+
+more coming soon.
