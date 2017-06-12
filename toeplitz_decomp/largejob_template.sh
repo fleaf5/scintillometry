@@ -33,6 +33,8 @@ module unload mpich2/xl
 module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1 
 module load python/2.7.3
 
+cd /scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp/
+
 echo "----------------------"
 echo "STARTING in directory $PWD"
 date
