@@ -1,9 +1,7 @@
 # toeplitz_decomposition
-
 Applies to code in Steve's GitHub. Written by Aladdin, Visal, Steve. 
 
 ### Extracting Data from your binned file ###
-
 To extract binned data, use `extract_realData2.py`, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
 Extract data on CITA (or personal computer for small `n`, `m`), then move the extracted data to SciNet/BGQ.
@@ -24,18 +22,23 @@ This will create the directory `./processedData/gate0_numblock_4_meff_16_offsetn
 
 Note that if a directory with this name already exists, the data therein will be overwritten without warning when extract_realData2.py executes. 
 
-The format of the directory name is:
+The format of the directory name is: `gate0\_numblock\_(n)\_meff\_(mx2)\_offsetn\_(offsetn)\_offsetm\_(offsetm)`
 
-gate0\_numblock\_(n)\_meff\_(mx2)\_offsetn\_(offsetn)\_offsetm\_(offsetm)
+Note that the value of `m` is doubled in the directory name, but you must use the original value of `m` when you perform the decomposition.
 
-Note that the value of m is doubled in the directory name, but you must use the original value of m when you perform the decomposition.
+Inside this folder, there will be a `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_toep.npy` file. There will also be `n` npy files. They each represent a block of the Toeplitz matrix. Only the files within this folder are required to perform the decomposition.
 
-Inside this folder, there will be a `gate0_numblock_(n)_meff_(mx4)_offsetn_(offsetn)_offsetm_(offsetm)_toep.npy` file
+There will also be a dat file `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm).dat`. This serves an unknown purpose, and the decomposition can be performed without it.
 
-There will also be n npy files. They will each represent a block of the toepletz matrix. The name of the file represent which block they represent. (so `0.npy` is the first block of the toepletz matrix with size 4mx4m)
+The current version of the code generates a number of png files, and a file `data.tar.gz`. These serve unknown purposes, and the decomposition can be performed without them.
 
 ### Performing decomposition ###
 
+##### Local jobs #####
+
+##### Small jobs on BGQ #####
+
+##### Large jobs on BGQ #####
 
 
 ### Plotting results ###
