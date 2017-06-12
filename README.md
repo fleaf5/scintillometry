@@ -108,7 +108,7 @@ debugjob
 The run is timed using the `time` function. Execution consists of 2*n* - 1 loops. 
 
 ##### Submitting large jobs (using jobsumbit.h) #####
-
+9. Edit a copy of `largejob_template.sh` (coming soon).
 
 ### Plotting results ###
 

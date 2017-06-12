@@ -17,7 +17,7 @@ m=16
 p=8							# VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
 pad=1						# 0 for no padding; 1 for padding. 
 
-#bg_size = 64				# Number of nodes in block (always 64 in debug block).
+#bg_size = 64				# Number of nodes in block (always 64 in debugjob).
 NP=64						# Number of MPI processes. Must be set to 2n for this code. NP ≤ (RPN * bg_size)
 RPN=8						# Number of MPI processes per node = 1,2,4,8,16,32,64. RPN ≤ NP
 export OMP_NUM_THREADS=8	# Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) ≤ 64 = threads per node
