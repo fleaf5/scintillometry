@@ -1,14 +1,18 @@
 # toeplitz_decomposition
 
+Written by Aladdin, modified by Visal, Steve.
+
 ### Extracting Data from your binned file ###
 
 To extract binned data, use extract_realData2.py, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
-The recommendation is to extract data on a personal computer, then move the extracted data to SciNet/BGQ.
+Extract data on CITA (or personal computer for small n, m), then move the extracted data to SciNet/BGQ.
 
 To extract, use the format:
 
+```
 $ python extract_realData2.py binnedDataFile numofrows numofcolms offsetn offsetm n m
+```
 
 where binnedDataFile is the raw data you wish to extract (must be in the same directory as extract_realData2.py). n is the number of blocks (or the number of frequency bins) and m is the size of each block (or the number of time bins). n and m refer to the size of the raw data, and must be set correctly for proper extraction. The remaining arguments apply to the extracted dynamic spectrum, and can be set to desired values. offsetn and offsetm are the lower bounds of the frequency and time bins, respectively. numofrows and numofcolms are the total number of frequency and time bins.
 
