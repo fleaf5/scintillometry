@@ -1,26 +1,26 @@
 # toeplitz_decomposition
 
-Written by Aladdin, modified by Visal, Steve.
+Applies to code in Steve's GitHub. Written by Aladdin, Visal, Steve. 
 
 ### Extracting Data from your binned file ###
 
-To extract binned data, use extract_realData2.py, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
+To extract binned data, use `extract_realData2.py`, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
-Extract data on CITA (or personal computer for small n, m), then move the extracted data to SciNet/BGQ.
+Extract data on CITA (or personal computer for small `n`, `m`), then move the extracted data to SciNet/BGQ.
 
 To extract, use the format:
-
 ```
-$ python extract_realData2.py binnedDataFile numofrows numofcolms offsetn offsetm n m
+$ python extract_realData2.py binnedDataFile numrows numcols offsetn offsetm n m
 ```
 
-where binnedDataFile is the raw data you wish to extract (must be in the same directory as extract_realData2.py). n is the number of blocks (or the number of frequency bins) and m is the size of each block (or the number of time bins). n and m refer to the size of the raw data, and must be set correctly for proper extraction. The remaining arguments apply to the extracted dynamic spectrum, and can be set to desired values. offsetn and offsetm are the lower bounds of the frequency and time bins, respectively. numofrows and numofcolms are the total number of frequency and time bins.
+where `binnedDataFile` is the raw data you wish to extract (must be in the same directory as `extract_realData2.py`). `numrows` is the number of blocks (or the number of frequency bins) and `numcols` is the size of each block (or the number of time bins). `numrows` and `numcols` refer to the raw data, and must be set correctly for proper extraction. The remaining arguments apply to the extracted dynamic spectrum, and can be set as desired. `offsetn` and `offsetm` are the lower bounds of the frequency and time bins, respectively. `n` and `m` are the total number of frequency and time bins (or, equivalently, the number of blocks and the size of each block, respectively)
 
-For example, if you want numofrows= 2048, numofcols=330, offsetn= 0, offsetm = 140, n=4, m=8, use the call:
+For example, if your data has `numrows = 16384`, `numcols = 660`, and you want `offsetn = 0`, `offsetm = 0`, `n = 4`, `m = 8`, use:
+```
+python extract_realData2.py weighted_average_0_1_6.bin 16384 660 0 0 4 8
+```
 
-python extract_realData2.py gb057_1.input_baseline258_freq_03_pol_all.rebint.1.rebined 2048 330 0 140 4 8
-
-This will create the directory ./processedData/gate0_numblock_4_meff_16_offsetn_0_offsetm_140
+This will create the directory `./processedData/gate0_numblock_4_meff_16_offsetn_0_offsetm_0`
 
 Note that if a directory with this name already exists, the data therein will be overwritten without warning when extract_realData2.py executes. 
 
@@ -30,11 +30,12 @@ gate0\_numblock\_(n)\_meff\_(mx2)\_offsetn\_(offsetn)\_offsetm\_(offsetm)
 
 Note that the value of m is doubled in the directory name, but you must use the original value of m when you perform the decomposition.
 
+Inside this folder, there will be a `gate0_numblock_(n)_meff_(mx4)_offsetn_(offsetn)_offsetm_(offsetm)_toep.npy` file
+
+There will also be n npy files. They will each represent a block of the toepletz matrix. The name of the file represent which block they represent. (so `0.npy` is the first block of the toepletz matrix with size 4mx4m)
 
 ### Performing decomposition ###
-Proper instructions coming soon.
 
-Refer to https://eor.cita.utoronto.ca/penwiki/User:Sufkes#Successful_trial_decomposition_on_BGQ for an example of a decomposition done on the BGQ.
 
 
 ### Plotting results ###
