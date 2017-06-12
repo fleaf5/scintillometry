@@ -113,6 +113,10 @@ debugjob
 
 The run is timed using the `time` function. Execution consists of 2*n* - 1 loops. Results are saved in `./results/`
 
+12. Move results from scratch directory to desired location.
+
+Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`. An empty directory is also created which serves an unkown purpose.
+
 ##### Submitting large jobs (using jobsumbit.h) #####
 9. Copy the template job script `largejob_template.sh` to a new name:
 ```
@@ -127,6 +131,13 @@ cp largejob_template.sh largejob_name.sh
 ```
 llsubmit ./largejob_name.sh
 ```
+
+See SciNet [BGQ wiki](https://wiki.scinet.utoronto.ca/wiki/index.php/BGQ) for instructions on monitoring progress.
+
+12. Move results from scratch directory to desired location.
+
+Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`. An empty directory is also created which serves an unkown purpose.
+
 
 ### Plotting results ###
 
