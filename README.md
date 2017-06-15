@@ -127,7 +127,7 @@ cp largejob_template.sh largejob_name.sh
 10. Edit the copy `largejob_name.sh`.
 * Follow the same instructions as for small jobs.
 * For batch jobs, the number of nodes must be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
-* Set the directory of the source code `sourcedir`.
+* Set the directory of the source code *sourcedir*.
 
 11. Submit the job:
 ```
