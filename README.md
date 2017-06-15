@@ -117,8 +117,7 @@ The run is timed using the `time` function. Execution consists of 2*n* - 1 loops
 
 Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`. An empty directory is also created which serves an unkown purpose.
 
-##### Submitting large jobs (using jobsumbit.h) #####
-(NOT TESTED YET)
+##### Submitting large jobs (using llsubmit) #####
 
 9. Copy the template job script `largejob_template.sh` to a new name:
 ```
@@ -127,7 +126,8 @@ cp largejob_template.sh largejob_name.sh
 
 10. Edit the copy `largejob_name.sh`.
 * Follow the same instructions as for small jobs.
-* For batch jobs, the number of nodes can be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
+* For batch jobs, the number of nodes must be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
+* Set the directory of the source code `sourcedir`.
 
 11. Submit the job:
 ```

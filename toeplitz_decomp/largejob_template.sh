@@ -14,7 +14,7 @@
 # Each core has 4 threads.
 # Free to choose RPN and OMP_NUM_THREADS such that (RPN * OMP_NUM_THREAD) <= number of threads per node = 64.
 
-method=yty2					# Scheme of decomposition. yty2 is the method describe in Nilou's report.
+method=yty2					# Scheme of decomposition. yty2 is the method described in Nilou's report.
 offsetn=0
 offsetm=0
 n=4
