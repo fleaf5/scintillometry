@@ -8,8 +8,6 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-FILE = "gb057_1.input_baseline258_freq_03_pol_all.rebint.1.rebined"
-
 if len(sys.argv) != 8 and len(sys.argv) != 9:
 	if rank==0:
 		print "Please pass in the following arguments: method offsetn offsetm n m p pad"
@@ -31,10 +29,10 @@ else:
     
     if pad == 0:
         folder = "gate0_numblock_{}_meff_{}_offsetn_{}_offsetm_{}".format(n, m, offsetn, offsetm)
-        c = ToeplitzFactorizor(folder, n,m, pad, detailedSave)
+        c = ToeplitzFactorizor(folder, n, m, pad, detailedSave)
     if pad == 1:
         folder = "gate0_numblock_{}_meff_{}_offsetn_{}_offsetm_{}".format(n, m*2, offsetn, offsetm)
-        c = ToeplitzFactorizor(folder, n,m*2, pad, detailedSave)
+        c = ToeplitzFactorizor(folder, n, m*2, pad, detailedSave)
     for i in range(0, n*(1 + pad)//size):
         c.addBlock(rank + i*size)
         c.fact(method, p)
