@@ -25,13 +25,13 @@ startTime = time()
 SEQ, WY1, WY2, YTY1, YTY2 = "seq", "wy1", "wy2", "yty1", "yty2"
 class ToeplitzFactorizor:
     
-    def __init__(self, folder, n,m, pad, detailedSave = False):
+    def __init__(self, folder, n, m, pad, detailedSave = False):
         self.comm = MPI.COMM_WORLD
         size  = self.comm.Get_size()
         self.size = size
         self.rank = self.comm.Get_rank()
         self.n = n
-        self.m = m
+        self.m = m # With padding, this value of m is now twice it's original value.
         self.pad = pad
         self.folder = folder
         self.blocks = Blocks()
@@ -39,8 +39,9 @@ class ToeplitzFactorizor:
         self.detailedSave = detailedSave
         self.numOfBlocks = n*(1 + pad)
         
-        kCheckpoint = 0 #0 = no checkpoint
+        kCheckpoint = 0 # 0 = no checkpoint
         
+        # Check whether the code has been stopped mid-execution, and can be continued from a checkpoint.
         if os.path.exists("processedData/" + folder + "/checkpoint"):
             for k in range(n*(1 + self.pad) - 1, 0, -1):
                 if os.path.exists("processedData/{0}/checkpoint/{1}/".format(folder, k)):
@@ -52,19 +53,21 @@ class ToeplitzFactorizor:
                         break
         else:
             if self.rank == 0:
-                os.makedirs("processedData/{0}/checkpoint/".format(folder))
+                os.makedirs("processedData/{0}/checkpoint/".format(folder))	# Create checkpoint folder if one does not exist.
         self.kCheckpoint = kCheckpoint
         if not os.path.exists("results"):
             if self.rank == 0:
-                os.makedirs("results")
+                os.makedirs("results") # Create results folder if one does not exist.
         if not os.path.exists("results/{0}".format(folder)):
             if self.rank == 0:
-                os.makedirs("results/{0}".format(folder))   
+                os.makedirs("results/{0}".format(folder)) # Create results subfolder for current run if one does not exist.
 
+		# Initialize matrix which stores final result.
         if self.rank==0:
             if not os.path.exists("results/{0}".format(folder + "_uc.npy")):
                 uc = np.zeros((m*n,1), dtype=complex)
                 np.save("results/{0}".format(folder + "_uc.npy"), uc)
+        
         ## So that the creation of files and directories are complete before the rest of the nodes continue        
         initDone=False
         initDone = self.comm.bcast(initDone, root=0)
@@ -77,16 +80,15 @@ class ToeplitzFactorizor:
         if k!= 0:
             A1 = np.load("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, rank))
             A2 = np.load("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, rank))
-            b.setA1(A1)
-            b.setA2(A2)
+            b.setA1(A1) # Assigns A1 for current instance of Block
+            b.setA2(A2) # Assigns A2 for current instance of Block
         else:
             if rank >= self.n:
                 m = self.m
-                b.createA(np.zeros((m,m), complex))
-                
+                b.createA(np.zeros((m,m), complex)) # Assigns A1 and A2 for current instance of Block.
             else:
                 T = np.load("processedData/{0}/{1}.npy".format(folder,rank))
-                b.setT(T)
+                b.setT(T) # Assigns T for current instance of Block.
         b.setName("results/{0}_uc.npy".format(folder))
         self.blocks.addBlock(b)     
         return 
@@ -119,7 +121,7 @@ class ToeplitzFactorizor:
             self.k = k
             if self.rank == 1:
                 print ("Loop {0}".format(k))
-            ##Build generator at step k [A1(:e1, :) A2(s2:e2, :)]
+            # Build generator at step k [A1(:e1, :) A2(s2:e2, :)]
             s1, e1, s2, e2 = self.__set_curr_gen(k, n)
             if method==SEQ:
                 self.__seq_reduc(s1, e1, s2, e2)
@@ -159,7 +161,7 @@ class ToeplitzFactorizor:
             
 
     ##Private Methods
-    def __setup_gen(self):
+    def __setup_gen(self): # Sets up generator matrix A.
         n = self.n
         m = self.m
         pad = self.pad
@@ -170,18 +172,18 @@ class ToeplitzFactorizor:
         ##The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0) :
 #            print self.blocks.getBlock(0).getT(), 'getBlock'
-            c = cholesky(self.blocks.getBlock(0).getT())
-            c = np.conj(c.T)
-            cinv = inv(c)
+            c = cholesky(self.blocks.getBlock(0).getT())	# Compute Cholesky decomposition (L) of T for block in the root rank. 
+            c = np.conj(c.T)								# Compute conguate transpose of c.
+            cinv = inv(c)									# Compute inverse of c.
 #            print cinv, 'cinv'
-        cinv = self.comm.bcast(cinv, root=0)
+        cinv = self.comm.bcast(cinv, root=0)				
         for b in self.blocks:
             if b.rank < self.n:
                 b.createA(b.getT().dot(cinv))
 #                print 'A1', A1.shape, b.rank
 #                print 'A2', A2.shape, b.rank
             
-        ##We are done with T. We shouldn't ever have a reason to use it again
+        # We are done with T. We shouldn't ever have a reason to use it again
         for b in self.blocks:
             b.deleteT()
         
@@ -202,45 +204,46 @@ class ToeplitzFactorizor:
                 b.setWork2(b.rank - k)
             else:
                 b.setWork2(None)
+                
         return s1, e1, s2, e2
     
-    def __temp_Comm(self, k, n, b):
-        s1 = 0
-        e1 = min(n, (n*(1 + self.pad) - k)) -1
-        s2 = k
-        e2 = e1 + s2
-        
-        N = self.size # number of processes
-        n = np.arange(0,N)
-        
-        # find processes that are needed
-        temp = np.where( np.logical_and( n >=  s1, n <= e1) )
-        temp2 = np.where( np.logical_and( n >=  s2, n <= e2, n==0) )
-        union = np.union1d(temp, temp2)
-#        if self.rank == 0: print union
-        
-        exclusion = np.setxor1d(n, union) # find processes that are not needed
-        newrank = np.arange(0, union.size)
-        
-        # making a new sub communicator between the processes that are needed
-        group = self.comm.Get_group()
-        newgroup = group.Excl(exclusion)
-        newcomm = self.comm.Create(newgroup)
-        
-        # renaming new comm size and ranking scheme
-        if self.rank in exclusion:
-            assert newcomm == MPI.COMM_NULL
-        else:
-            assert newcomm.size == self.size-exclusion.size
-#            print newrank[np.where(self.rank == union )], self.rank
-            assert newcomm.rank == newrank[np.where(self.rank == union )][0]
-        
-        if self.rank not in exclusion:
-            newcomm.Bcast(b.getTemp(), root=0) 
-            
-        group.Free(); newgroup.Free()
-        if newcomm: newcomm.Free()
-        return union
+#    def __temp_Comm(self, k, n, b):
+#        s1 = 0
+#        e1 = min(n, (n*(1 + self.pad) - k)) -1
+#        s2 = k
+#        e2 = e1 + s2
+#        
+#        N = self.size # number of processes
+#        n = np.arange(0,N)
+#        
+#        # find processes that are needed
+#        temp = np.where( np.logical_and( n >=  s1, n <= e1) )
+#        temp2 = np.where( np.logical_and( n >=  s2, n <= e2, n==0) )
+#        union = np.union1d(temp, temp2)
+##        if self.rank == 0: print union
+#        
+#        exclusion = np.setxor1d(n, union) # find processes that are not needed
+#        newrank = np.arange(0, union.size)
+#        
+#        # making a new sub communicator between the processes that are needed
+#        group = self.comm.Get_group()
+#        newgroup = group.Excl(exclusion)
+#        newcomm = self.comm.Create(newgroup)
+#        
+#        # renaming new comm size and ranking scheme
+#        if self.rank in exclusion:
+#            assert newcomm == MPI.COMM_NULL
+#        else:
+#            assert newcomm.size == self.size-exclusion.size
+##            print newrank[np.where(self.rank == union )], self.rank
+#            assert newcomm.rank == newrank[np.where(self.rank == union )][0]
+#        
+#        if self.rank not in exclusion:
+#            newcomm.Bcast(b.getTemp(), root=0) 
+#            
+#        group.Free(); newgroup.Free()
+#        if newcomm: newcomm.Free()
+#        return union
 
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
         n = self.n
@@ -252,7 +255,7 @@ class ToeplitzFactorizor:
                 b.setWork(None, None)
                 if b.rank==0: b.setWork1(s2)
                 if b.rank==s2: b.setWork2(0)
-            #print k, b.rank, b.getWork1(), b.getWork2()
+#            print k, b.rank, b.getWork1(), b.getWork2()
         
             sb2 = s2*m + sb1
             eb1 = min(sb1 + p, m) #next j

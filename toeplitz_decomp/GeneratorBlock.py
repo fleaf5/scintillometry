@@ -45,6 +45,7 @@ class Block:
         
     def setWork1(self, work1 = None):
         self.work1 = work1
+        
     def setWork2(self, work2 = None):
         self.work2 = work2
         
@@ -83,7 +84,6 @@ class Block:
     
     def getA2(self):
         return self.A2
+        
     def getT(self):
         return self.T
-        
-        

@@ -13,6 +13,7 @@ import mmap
 import re
 from scipy.fftpack import fftshift, fft2, ifft2, ifftshift
 import tarfile
+import copy
 
 matplotlib.rcParams.update({'font.size': 13})
 
@@ -40,8 +41,12 @@ nump=sizen
 if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+sizem>num_columns:
 	print ("Error sizes or offsets don't match")
 	sys.exit(1)
-
+ 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
+
+
+print "Dimensions of a:", a.shape
+print "a:\n", a[:sizen,:sizem]
 
 # load normal array
 #data = np.fromfile('C:\Users\Visal LeSok\Desktop\script\simulated_test\dynamic_spectrum_257_freq_00_f0326.5.bin',dtype=np.complex).reshape(-1,660)
@@ -64,10 +69,14 @@ meff=sizem+sizem*pad
 
 meff_f=meff+pad2*meff
 
+print "neff:", neff, " meff:", meff, " meff_f:", meff_f
+
+
 a_input=np.zeros(shape=(neff,meff), dtype=complex)
-print (a_input.shape)
+print "Dimensions of a_input:", a_input.shape
 a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
-print (a_input)
+print "a_input:\n", (a_input)
+
 
 plt.figure()
 plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
@@ -99,9 +108,15 @@ const=int(pad2*meff/2)
 ##### ensuring positive definite matrix #####
 norm = a.shape[0]*a.shape[1]
 a_input=np.sqrt(a_input)
+squirt=copy.deepcopy(a_input)
 if debug:
 	print (a_input,"after sqrt")
-a_input[:sizen,:sizem]=np.fft.fft2(a_input,s=(sizen,sizem))
+a_input[:sizen,:sizem]=np.fft.fft2(a_input,s=(sizen,sizem)) 
+# If given shape 's' (n, m) is smaller than the shape of the input (2n, 2m), the input is cropped.
+
+print "a_input:\n", a_input
+print "What I think the first nxm block of a_input is:\n", np.fft.fft2(squirt[:sizen,:sizem],s=(sizen,sizem)) 
+
 if debug:
 	print (a_input,"after first fft")
 c = a_input
@@ -110,11 +125,13 @@ plt.figure(figsize=(12,6))
 print (int(round(sizem/2.)))
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
+print "a_input (after sqrt, fft, first block move):\n", a_input
 plt.subplot(1,2,1)
 plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
+print "a_input (after sqrt, fft, second block move):\n", a_input
 plt.subplot(1,2,2)
 plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 plt.savefig('2.png') 
@@ -180,6 +197,7 @@ for rank in np.arange(0,nump):
     start = rank*size_node_temp
     file_name=path+'/'+str(rank)+".npy"
     np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
+    print "Dimensions of saved thing:", np.conj(input_f[:,start:start+size_node].T).shape
 #    tar.add(file_name)
 #    os.remove(file_name)
 tar.close()
