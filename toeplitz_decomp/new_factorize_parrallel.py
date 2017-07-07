@@ -90,15 +90,17 @@ class ToeplitzFactorizor:
                 T = np.load("processedData/{0}/{1}.npy".format(folder,rank))
                 b.setT(T) # Assigns T for current instance of Block.
         b.setName("results/{0}_uc.npy".format(folder))
-        self.blocks.addBlock(b)     
+        self.blocks.addBlock(b)
+        
         return 
+    
 
+	#### ALGORITHM 3 ####
     def fact(self, method, p):
         if method not in np.array([SEQ, WY1, WY2, YTY1, YTY2]):
             raise InvalidMethodException(method)
         if p < 1 and method != SEQ:
             raise InvalidPException(p)
-        
         
         pad = self.pad
         m = self.m
@@ -107,7 +109,15 @@ class ToeplitzFactorizor:
         folder = self.folder
         
         if self.kCheckpoint==0:
+        	#### ALGORITHM 3: STEP 1 ####
             self.__setup_gen()
+            
+            # At this point, MPI processes with rank < n have:
+            # A1 = T_rank * cinv        (2m x 2m matrix)
+            # A2 = i * T_rank * cinv    (2m x 2m matrix)
+            # MPI processes with rank >= n have:
+            # A1 = 0                    (2m x 2m matrix)
+            # A2 = 0                    (2m x 2m matrix)
 
             for b in self.blocks:
                 if not pad and b.rank == n*(1 + pad) - 1:
@@ -117,12 +127,18 @@ class ToeplitzFactorizor:
             for b in self.blocks:        
                 np.save("results/{0}/L_{1}-{2}.npy".format(folder, 0, b.rank), b.getA1())
         
+        #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             self.k = k
             if self.rank == 1:
                 print ("Loop {0}".format(k))
-            # Build generator at step k [A1(:e1, :) A2(s2:e2, :)]
-            s1, e1, s2, e2 = self.__set_curr_gen(k, n)
+                
+            #### ALGORITHM 3: STEP 4 #### 
+            # Build current generator at step k: A(k) = [A1(s1:e1,:) A2(s2:e2,:)]
+            s1, e1, s2, e2 = self.__set_curr_gen(k, n) # Set s1, e1, s2, e2, work1, work2 for all MPI processes.
+            
+            #### ALGORITHM 3: STEP 5 ####
+            # Reduce current generator A(k) to proper form.
             if method==SEQ:
                 self.__seq_reduc(s1, e1, s2, e2)
             else:
@@ -161,6 +177,8 @@ class ToeplitzFactorizor:
             
 
     ##Private Methods
+    
+    #### ALGORITHM 3: STEP 1 ####
     def __setup_gen(self): # Sets up generator matrix A.
         n = self.n
         m = self.m
@@ -189,6 +207,8 @@ class ToeplitzFactorizor:
         
         return A1, A2
 
+	#### ALGORITHM 3: STEP 4 ####
+	# Get indices used to construct the current generator A(k) of the kth Schur complement from the proper generator of the (k-1)th Schur complement.
     def __set_curr_gen(self, k, n):
         s1 = 0
         e1 = min(n, (n*(1 + self.pad) - k)) -1
@@ -245,6 +265,7 @@ class ToeplitzFactorizor:
 #        if newcomm: newcomm.Free()
 #        return union
 
+	#### ALGORITHM 8 ####
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
         n = self.n
        
@@ -274,18 +295,27 @@ class ToeplitzFactorizor:
             for j in range(0, p_eff):
                 j1 = sb1 + j
                 j2 = sb2 + j
+                
+                #### ALGORITHM 5 #### 
+                # Compute X2 and beta for jth Householder vector
+                
+                # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                # Rank=0 and rank=s2=k will be stuck in this function until it is done (one might leave a bit earlier). 
                 data= self.__house_vec(j1, s2, j, b) ##s2 or sb2?
   
                 temp[j] = data
                 X2 = data[:self.m]
                 beta = data[-1]
+                
+                # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                # Rank=0 and rank=s2=k will be stuck in this function until it is done (one might leave a bit earlier).
                 self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
 
             XX2 = temp[:,:m]
             if b.rank == s2 or b.rank == 0:
                 S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
                 self.__set_curr_gen(s2, n) ## Updates work
-                self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
+                self.__new_block_update(XX2, sb1, eb1, u1, e1, s2, sb2, eb2, u2, e2, S, m, p_eff)
             X2_list[sb1:sb1+p_eff,:] = temp
         
         b.createTemp(np.zeros((m, m+1), complex))
@@ -481,12 +511,13 @@ class ToeplitzFactorizor:
         #X2 = np.array([X2])
         u = j + 1
         num = self.numOfBlocks
-        
+                
         nru = e1*m - (s2*m + j + 1)  
         for b in self.blocks:
-            if b.work2 == None: 
+            if b.work2 == None: # Apparently, only rank=s2=k performs the work in this loop.
+#                print s2, b.rank, b.work1, b.work2,  'b'
                 continue
-#            print s2,b.rank, b.work1, b.work2,  'a'
+#            print s2, b.rank, b.work1, b.work2, 'a'
             B1 = np.dot(b.getA2(), np.conj(X2.T))
             start = 0
             end = m
@@ -499,9 +530,9 @@ class ToeplitzFactorizor:
 
         
         for b in self.blocks:
-            if b.work1 == None:
+            if b.work1 == None: # Apparently, only rank=0 performs the work in this loop.
                 continue 
-#            print s2,b.rank, b.work1, b.work2,  'b'
+#            print s2,b.rank, b.work1, b.work2, 'b'
             start = 0
             end = m
             if b.rank == 0:
@@ -520,8 +551,9 @@ class ToeplitzFactorizor:
             del A1
 
         for b in self.blocks:
-            if b.work2 == None: 
+            if b.work2 == None: # Apparently, only rank=s2=k performs the work in this loop.
                 continue
+            
             start = 0
             end = m
             if b.rank == s2:
@@ -529,15 +561,17 @@ class ToeplitzFactorizor:
             if b.rank == e2/m :
                 end = e2 % m or m
             v = np.empty(end-start,complex)
+            
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
             A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))
             #A2[start:end,:] -= beta*v.dot(np.conj(X2).T)
             del A2
-        
+
+	#### ALGORITHM 5 ####
     def __house_vec(self, j, s2, j_count, b):
         isZero = np.array([0])
-        b.setFalse(isZero)
+        b.setFalse(isZero) # Sets attribute isZero to specified value (setFalse and setTrue are equivalent functions).
 #        print b.getCond()
         
         X2 = np.zeros(self.m, complex)
@@ -547,12 +581,12 @@ class ToeplitzFactorizor:
         n = self.n
         num = self.numOfBlocks
         
-        if blocks.hasRank(s2):
+        if blocks.hasRank(s2): # s2 = k for yty2 method with padding.
             A2 = blocks.getBlock(s2).getA2()
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
                 b.setTrue(isZero)
-                self.comm.Bcast(b.getCond(), root=s2%self.size)
+                self.comm.Bcast(b.getCond(), root=s2%self.size) # rank=s2=k is now broadcasting.
             del A2
         
         #isZero = self.comm.bcast(isZero, root=s2%self.size)
@@ -573,7 +607,7 @@ class ToeplitzFactorizor:
             beta = self.comm.recv(source=0, tag=4*num + s2)
 
             X2 = A2[j,:]/z
-            A2[j, :] = X2
+            A2[j,:] = X2
  
            #print X2.shape, beta, 'main'
             data[:self.m] = X2
