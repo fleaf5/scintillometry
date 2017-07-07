@@ -315,6 +315,9 @@ class ToeplitzFactorizor:
             if b.rank == s2 or b.rank == 0:
                 S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
                 self.__set_curr_gen(s2, n) ## Updates work
+                
+                # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                # Rank=0 and rank=s2=k will be stuck in this function until it is done (one might leave a bit earlier).
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2, sb2, eb2, u2, e2, S, m, p_eff)
             X2_list[sb1:sb1+p_eff,:] = temp
         
