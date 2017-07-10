@@ -13,13 +13,13 @@ module load python/2.7.3
 method=yty2					# Scheme of decomposition. yty2 is the method described in Nilou's report.
 offsetn=0
 offsetm=0
-n=4
-m=8
-p=4							# VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
+n=128
+m=128
+p=64							# VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
 pad=1						# 0 for no padding; 1 for padding.
 
 # bg_size = 64 is the number of nodes in the block (always 64 in debugjob).
-NP=8						# Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
+NP=256						# Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
 RPN=8						# Number of MPI processes per node = 1,2,4,8,16,32,64. RPN <= NP
 export OMP_NUM_THREADS=8	# Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) <= 64 = threads per node
 
