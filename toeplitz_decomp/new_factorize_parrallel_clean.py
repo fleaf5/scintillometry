@@ -184,16 +184,11 @@ class ToeplitzFactorizor:
         cinv = None
         
         # The root rank will compute the cholesky decomposition
-        if self.blocks.hasRank(0):
+        if self.blocks.hasRank(0) :
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c.T)
             cinv = inv(c)
-        else:
-            cinv = np.empty((m,m),complex)
-        self.comm.Bcast(cinv, root=0)
-
-#        cinv = self.comm.bcast(cinv, root=0) # This was replaced by Bcast and the initialization for rank!=0 directly above.
-
+        cinv = self.comm.bcast(cinv, root=0)
         for b in self.blocks:
             if b.rank < self.n:
                 b.createA(b.getT().dot(cinv))
