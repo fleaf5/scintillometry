@@ -67,8 +67,12 @@ class ToeplitzFactorizor:
                 np.save("results/{0}".format(folder + "_uc.npy"), uc)
                 
         # Ensure that files and directories are created before the rest of the nodes continue.
-        initDone=False
-        initDone = self.comm.bcast(initDone, root=0)
+#        initDone=False
+#        initDone = self.comm.bcast(initDone, root=0)
+        
+        # Replaced above bcast call with the following Bcast call.
+        initDone = np.array([0])
+        self.comm.Bcast(initDone, root=0)
         
         
     def addBlock(self, rank):
@@ -149,7 +153,28 @@ class ToeplitzFactorizor:
                     np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), b.getA1())
                 
             # CheckPoint
-            saveCheckpoint = False
+#            saveCheckpoint = False
+#            if self.rank==0:
+#                timePerLoop.append(time() - sum(timePerLoop) - startTime)
+#                
+#                elapsedTime = time() - startTime
+#                if elapsedTime + max(timePerLoop) >= MAXTIME: # Max instead of np.mean, just to be safe
+#                    print ("Saving Checkpoint #{0}".format(k))
+#                    if not os.path.exists("processedData/{0}/checkpoint/{1}/".format(folder, k)):
+#                        try:
+#                            os.makedirs("processedData/{0}/checkpoint/{1}/".format(folder, k))
+#                        except: pass
+#                    saveCheckpoint = True
+#            saveCheckpoint = self.comm.bcast(saveCheckpoint, root=0)
+#            
+#            if saveCheckpoint:
+#                for b in self.blocks:
+#                    # Creating Checkpoint
+#                    A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
+#                    A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
+#                exit()
+            
+            saveCheckpoint = np.array([0])
             if self.rank==0:
                 timePerLoop.append(time() - sum(timePerLoop) - startTime)
                 
@@ -159,9 +184,10 @@ class ToeplitzFactorizor:
                     if not os.path.exists("processedData/{0}/checkpoint/{1}/".format(folder, k)):
                         try:
                             os.makedirs("processedData/{0}/checkpoint/{1}/".format(folder, k))
-                        except: pass
-                    saveCheckpoint = True
-            saveCheckpoint = self.comm.bcast(saveCheckpoint, root=0)
+                        except:
+                            pass
+                    saveCheckpoint = np.array([1])
+            self.comm.Bcast(saveCheckpoint, root=0)
             
             if saveCheckpoint:
                 for b in self.blocks:
@@ -491,7 +517,7 @@ class ToeplitzFactorizor:
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
                 b.setTrue(isZero)
-                self.comm.Bcast(b.getCond(), root=s2%self.size)
+                self.comm.Bcast(b.getCond(), root=s2%self.size) # Conditional. I have not seen it called.
             del A2
         
         if b.getCond()[0]:
