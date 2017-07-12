@@ -38,8 +38,8 @@ else:
     for i in range(0, n*(1 + pad)//size):
         c.addBlock(rank + i*size)
 
-        # Profile code for first four ranks (0 and 1 are special; keep 2 and 3 for comparison).
-        if rank < 4:
+        # Profile code for first four ranks (0 and 1 are special; keep 2-5 for comparison).
+        if rank < 6:
             profileName = "time_n"+str(n)+"_m"+str(m)+"_p"+str(p)+"_rank"+str(rank)
             cProfile.run('c.fact(method, p)',profileName)
         else:
