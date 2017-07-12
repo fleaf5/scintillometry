@@ -308,7 +308,7 @@ class ToeplitzFactorizor:
         if b.getCond()[0]:
             pass
         else:
-            self.comm.Bcast(b.getTemp(), root=s2)
+            self.comm.Bcast(b.getTemp(), root=s2) # This is the broadcast which takes up the majority of execution time.
             
         temp = b.getTemp()
         for sb1 in range (0, m, p):

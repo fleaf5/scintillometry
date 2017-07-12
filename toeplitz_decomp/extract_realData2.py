@@ -69,30 +69,30 @@ print (a_input.shape)
 a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
 print (a_input)
 
-plt.figure()
-plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.colorbar()
-plt.title(r"Dynamic Spectrum: Input")
-plt.ylabel(r"Time")
-plt.xlabel(r"Freq")
-plt.savefig('dyn_spec_input.png')
-plt.close()
+#plt.figure()
+#plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.colorbar()
+#plt.title(r"Dynamic Spectrum: Input")
+#plt.ylabel(r"Time")
+#plt.xlabel(r"Freq")
+#plt.savefig('dyn_spec_input.png')
+#plt.close()
 
-plt.figure()
-plt.imshow(a_input.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.colorbar()
-plt.title(r"Dynamic Spectrum: First Padding")
-plt.ylabel(r"Time")
-plt.xlabel(r"Freq")
-plt.savefig('dyn_spec_1padding.png')
-plt.close()
+#plt.figure()
+#plt.imshow(a_input.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.colorbar()
+#plt.title(r"Dynamic Spectrum: First Padding")
+#plt.ylabel(r"Time")
+#plt.xlabel(r"Freq")
+#plt.savefig('dyn_spec_1padding.png')
+#plt.close()
 
 ##### specifying file directories #####
 newdir = "gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 if not os.path.exists("processedData/"+newdir):	
 	os.makedirs("processedData/"+newdir)
-filen="processedData/"+newdir+"/"+newdir+"_dynamic.npy"
-np.save(filen,a_input)
+#filen="processedData/"+newdir+"/"+newdir+"_dynamic.npy"
+#np.save(filen,a_input)
 
 const=int(pad2*meff/2)
 
@@ -106,18 +106,18 @@ if debug:
 	print (a_input,"after first fft")
 c = a_input
 
-plt.figure(figsize=(12,6))
+#plt.figure(figsize=(12,6))
 print (int(round(sizem/2.)))
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
-plt.subplot(1,2,1)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.subplot(1,2,1)
+#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
-plt.subplot(1,2,2)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.savefig('2.png') 
+#plt.subplot(1,2,2)
+#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.savefig('2.png') 
 if debug:
 	print (a_input,"after shift")
 print ('after transformation')
@@ -134,22 +134,22 @@ if debug:
 	print (a_input,"after third fft")
 ###############################################
 
-plt.figure(figsize=(12,6))
-plt.subplot(1,2,1)
-plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.colorbar()
-plt.title(r"Conjugate Spectrum: Rooting and Squaring")
-plt.ylabel(r"Lag")
-plt.xlabel(r"Dopp Freq")
+#plt.figure(figsize=(12,6))
+#plt.subplot(1,2,1)
+#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.colorbar()
+#plt.title(r"Conjugate Spectrum: Rooting and Squaring")
+#plt.ylabel(r"Lag")
+#plt.xlabel(r"Dopp Freq")
 
-plt.subplot(1,2,2)
-plt.imshow(np.fft.ifft2(a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.colorbar()
-plt.title(r"Dynamic Spectrum: Rooting and Squaring")
-plt.ylabel(r"Time")
-plt.xlabel(r"Freq")
-plt.savefig('dyn_spec_2rooting.png')
-plt.close()
+#plt.subplot(1,2,2)
+#plt.imshow(np.fft.ifft2(a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.colorbar()
+#plt.title(r"Dynamic Spectrum: Rooting and Squaring")
+#plt.ylabel(r"Time")
+#plt.xlabel(r"Freq")
+#plt.savefig('dyn_spec_2rooting.png')
+#plt.close()
 
 path="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 mkdir="mkdir "+path
@@ -171,7 +171,7 @@ print ("##########################")
 if neff == 1:
     neff -= 1
         
-tar = tarfile.open('data.tar.gz','w:gz')
+#tar = tarfile.open('data.tar.gz','w:gz')
 for rank in np.arange(0,nump):
     size_node_temp=(sizen//nump)*int(meff_f/2)
     size_node=size_node_temp
@@ -182,20 +182,20 @@ for rank in np.arange(0,nump):
     np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
 #    tar.add(file_name)
 #    os.remove(file_name)
-tar.close()
+#tar.close()
     
 # dat file for toeplitz matrix
-output_file="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s.dat" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
-output = np.memmap(output_file, dtype='complex', mode='w+', shape=(int(meff_f/2), sizen*int(meff_f/2)),order='F')
-output[:,:]=input_f[:meff_f,:]
+#output_file="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s.dat" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
+#output = np.memmap(output_file, dtype='complex', mode='w+', shape=(int(meff_f/2), sizen*int(meff_f/2)),order='F')
+#output[:,:]=input_f[:meff_f,:]
 
-plt.figure()
-plt.imshow(output.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-plt.colorbar()
-plt.savefig('toep.png')
-plt.close()
+#plt.figure()
+#plt.imshow(output.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
+#plt.colorbar()
+#plt.savefig('toep.png')
+#plt.close()
 
-del output
+#del output
 
 
 #mm.close()
