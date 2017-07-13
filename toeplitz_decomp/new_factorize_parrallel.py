@@ -308,7 +308,7 @@ class ToeplitzFactorizor:
         if b.getCond()[0]:
             pass
         else:
-            self.comm.Bcast(b.getTemp(), root=s2) # This is the broadcast which takes up the majority of execution time.
+            self.comm.Bcast(b.getTemp(), root=s2)
             
         temp = b.getTemp()
         for sb1 in range (0, m, p):
@@ -387,7 +387,8 @@ class ToeplitzFactorizor:
                 del A2
                 
             for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from and send to (rank+k)
-                if b.work1 == None: continue
+                if b.work1 == None: 
+                    continue
                 s = 0
                 if b.rank == 0:
                     continue
@@ -456,6 +457,7 @@ class ToeplitzFactorizor:
             if b.work2 == None: 
                 continue
             B1 = np.dot(b.getA2(), np.conj(X2.T))
+            
             start = 0
             end = m
             if b.rank == s2:
@@ -512,12 +514,12 @@ class ToeplitzFactorizor:
         n = self.n
         num = self.numOfBlocks
         
-        if blocks.hasRank(s2): # rank s2=k broadcasts to all ranks.
+        if blocks.hasRank(s2):
             A2 = blocks.getBlock(s2).getA2()
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
                 b.setTrue(isZero)
-                self.comm.Bcast(b.getCond(), root=s2%self.size) # Conditional. I have not seen it called.
+                self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
             del A2
         
         if b.getCond()[0]:
