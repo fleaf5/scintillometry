@@ -8,7 +8,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 n = int(sys.argv[1])
-m = n
+m = int(sys.argv[2])
 
 data = np.zeros((n,m),dtype="float64")
 
