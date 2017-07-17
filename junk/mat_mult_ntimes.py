@@ -1,13 +1,11 @@
 import sys
 import numpy as np
+import time
 
 # Initialize matrices.
 n = int(sys.argv[1])
 N = int(sys.argv[3])
-if len(sys.argv) == 3:
-	m = int(sys.argv[2])
-else:
-	m = n
+m = n
 
 # Create random matrices (the same ones each time). 
 np.random.seed(42)
@@ -17,6 +15,10 @@ np.random.seed(43)
 B = np.random.rand(m,n)-0.5
 
 # Matrix multiplication.
+start = time.time()
 for i in range(N):
     C = np.dot(A,B)
+end = time.time()
 
+print "Total time: "+str(end-start)
+print "Time per multiplication: "+str((end-start)/N)
