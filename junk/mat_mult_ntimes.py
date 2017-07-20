@@ -15,8 +15,10 @@ np.random.seed(43)
 B = np.random.rand(m,n)-0.5
 
 # Matrix multiplication.
+
+indices=range(N)
 start = time.time()
-for i in range(N):
+for i in indices:
     C = np.dot(A,B)
 end = time.time()
 

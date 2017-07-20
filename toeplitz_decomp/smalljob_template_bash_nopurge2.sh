@@ -1,6 +1,7 @@
 #!/bin/bash
 source /scratch/s/scinet/nolta/venv-numpy/setup
 module unload bgqgcc/4.4.6
+module unload mpich2/xl
 module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1
 
 # A debug block has 64 nodes, 64*16 = 1024 cores, 1024*4 = 4096 threads.
