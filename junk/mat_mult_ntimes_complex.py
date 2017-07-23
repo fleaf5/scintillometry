@@ -11,13 +11,13 @@ m = n
 np.random.seed(42)
 A_real = np.random.rand(n,m)-0.5
 np.random.seed(43)
-A_complex = 1.0*np.random.rand(n,m)-0.5
-A = A_real+1.0j*A_complex
+A_imaginary = 1.0*np.random.rand(n,m)-0.5
+A = A_real+1.0j*A_imaginary
 
 np.random.seed(44)
 B_real = np.random.rand(m,n)-0.5
 np.random.seed(45)
-B_complex = np.random.rand(m,n)-0.5
+B_imaginary = np.random.rand(m,n)-0.5
 B = B_real+1.0j*B_imaginary
 
 # Matrix multiplication.
@@ -27,6 +27,8 @@ start = time.time()
 for i in indices:
     C = np.dot(A,B)
 end = time.time()
+
+print(A,B)
 
 print "Total time: "+str(end-start)
 print "Time per multiplication: "+str((end-start)/N)
