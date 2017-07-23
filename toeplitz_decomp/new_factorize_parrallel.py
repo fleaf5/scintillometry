@@ -342,13 +342,6 @@ class ToeplitzFactorizor:
             if b.rank == s2: # rank s2=k sends to rank 0.
                 s = u1
                 A2 = b.getA2()
-                
-                print str(A2[:m, :m].shape)+str(X2[:m, :m].shape)
-                start = time()
-                C = np.dot(A2[:m, :m], X2[:m, :m])
-                end = time()
-                print "Time taken = "+str(end-start)
-                
                 B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 del A2
