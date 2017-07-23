@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as sp
+#import scipy as sp
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
