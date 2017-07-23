@@ -28,7 +28,5 @@ for i in indices:
     C = np.dot(A,B)
 end = time.time()
 
-print(A,B)
-
 print "Total time: "+str(end-start)
 print "Time per multiplication: "+str((end-start)/N)
