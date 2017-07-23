@@ -39,10 +39,6 @@ class ToeplitzFactorizor:
         
         kCheckpoint = 0 # 0 = no checkpoint
         
-        # Print module versions (REMOVE)
-        print "NumPy version: "+numpy.__version__
-        print "mpi4py version: "+mpi4py.__version__
-        
         # Check whether the code has been stopped mid-execution, and can be continued from a checkpoint.
         if os.path.exists("processedData/" + folder + "/checkpoint"):
             for k in range(n*(1 + self.pad) - 1, 0, -1):
