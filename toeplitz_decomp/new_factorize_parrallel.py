@@ -343,23 +343,8 @@ class ToeplitzFactorizor:
                 s = u1
                 A2 = b.getA2()
                 
-                np.random.seed(42)
-                A_real = np.random.rand(2048,2048)-0.5
-                np.random.seed(43)
-                A_imaginary = 1.0*np.random.rand(2048,2048)-0.5
-                A = A_real+1.0j*A_imaginary
-                del A_real
-                del A_imaginary
-
-                np.random.seed(44)
-                B_real = np.random.rand(2048,2048)-0.5
-                np.random.seed(45)
-                B_imaginary = np.random.rand(2048,2048)-0.5
-                B = B_real+1.0j*B_imaginary
-                del B_real
-                del B_imaginary
                 start = time()
-                C = np.dot(A,B)
+                C = np.dot(A2[:m, :m],X2[:m, :m])
                 end = time()
                 print "Time = "+str(end-start)
                 
