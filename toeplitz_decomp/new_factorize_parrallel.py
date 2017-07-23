@@ -359,7 +359,7 @@ class ToeplitzFactorizor:
                 del B_real
                 del B_imaginary
                 start = time()
-                    C = np.dot(A,B)
+                C = np.dot(A,B)
                 end = time()
                 print "Time = "+str(end-start)
                 
