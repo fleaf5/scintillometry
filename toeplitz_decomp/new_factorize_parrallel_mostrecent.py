@@ -1,5 +1,5 @@
 import numpy as np
-#import scipy as sp
+import scipy as sp
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -38,10 +38,6 @@ class ToeplitzFactorizor:
         self.numOfBlocks = n*(1 + pad)
         
         kCheckpoint = 0 # 0 = no checkpoint
-        
-        # Print module versions (REMOVE)
-        print "NumPy version: "+numpy.__version__
-        print "mpi4py version: "+mpi4py.__version__
         
         # Check whether the code has been stopped mid-execution, and can be continued from a checkpoint.
         if os.path.exists("processedData/" + folder + "/checkpoint"):
