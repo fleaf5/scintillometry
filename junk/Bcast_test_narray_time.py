@@ -10,11 +10,11 @@ size = comm.Get_size()
 n = int(sys.argv[1])
 m = int(sys.argv[2])
 
-data = np.zeros((n,m),dtype="float64")
+data = np.zeros((n,m),dtype="complex128")
 
 if rank == 0:
     np.random.seed(42)
-    data = np.random.rand(n,m)
+    data = data + np.ones(n,m)
     
     start = time.time()
     comm.Bcast(data, root = 0)
