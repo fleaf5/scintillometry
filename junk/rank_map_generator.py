@@ -46,6 +46,11 @@ rm[:, 0] = 0
 for process in range(2*4*2*2*rpn, processes, 2*2*4*2*2*rpn):
     rm[process:min(process+2*4*2*2*rpn, processes), 0] = 1
 
+nodes           = int(sys.argv[1])
+rpn             = int(sys.argv[2])
+processes       = int(sys.argv[3])
+same_node       = bool(int(sys.argv[4]))
+
 if same_node:
     same_node_string = "s"
 else:
