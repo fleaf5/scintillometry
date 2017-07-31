@@ -136,6 +136,56 @@ class ToeplitzFactorizor:
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             
             
+            ############################# Send/Recv Test ######################################
+            data = np.zeros((8388608,1),dtype="complex128")
+
+            if b.rank == 0:
+                data = data + np.ones((8388608,1))+1.0j*np.ones((8388608,1))
+                self.comm.Barrier() # Hopefully synchronize the time at which Bcast is called.
+                wstart = MPI.Wtime()
+                self.comm.Send(data, dest=1, tag=0)
+                self.comm.Barrier()
+                wend = MPI.Wtime()
+            elif b.rank == 1:
+                self.comm.Barrier() # Hopefully synchronize the time at which Bcast is called.
+                wstart = MPI.Wtime()
+                self.comm.Recv(data, source=0, tag=0)
+                self.comm.Barrier()
+                wend = MPI.Wtime()
+            else:
+                self.comm.Barrier() # Hopefully synchronize the time at which Bcast is called.
+                wstart = MPI.Wtime()
+                self.comm.Barrier()
+                wend = MPI.Wtime()
+
+            wduration = wend - wstart
+
+            wall_starts = self.comm.gather(wstart, root=0)
+            wall_ends = self.comm.gather(wend, root=0)
+            wall_duration = self.comm.gather(wduration, root=0)
+            
+            if b.rank == 0 or b.rank == 1:
+                success = bool( np.all(np.real(data)) and np.all(np.imag(data)) and len(data[:,0])==8388608 and len(data[0,:])==1 )
+            else:
+                success = True
+            all_success = self.comm.gather(success, root=0)
+
+            if b.rank == 0:
+                wfirst_start = min(wall_starts)
+                wlast_end = max(wall_ends)
+                wmax_duration = max(wall_duration)
+                
+                total_success = np.all(all_success)
+
+#            print "Rank = "+str(b.rank)+", Wtime = "+str(wend-wstart)
+            self.comm.Barrier()
+            if b.rank == 0:
+#                print "max individual time = "+str(wmax_duration)
+                print "total Wtime = "+str(wlast_end-wfirst_start)
+                print "Bcast success = "+str(total_success)
+            ############################# Send/Recv Test ######################################
+            
+            
             
             ## TIME LOOPS (REMOVE)
             if self.rank == 0:
