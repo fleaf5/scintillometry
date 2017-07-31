@@ -74,9 +74,9 @@ class ToeplitzFactorizor:
         # Replaced above bcast call with the following Bcast call.
         initDone = np.array([0])
         
-#        self.comm.Barrier()
+        self.comm.Barrier()
         self.comm.Bcast(initDone, root=0)
-#        self.comm.Barrier()
+        self.comm.Barrier()
         
         
     def addBlock(self, rank):
@@ -102,6 +102,11 @@ class ToeplitzFactorizor:
 
     #### ALGORITHM 3 ####
     def fact(self, method, p):
+        
+#        self.comm.Barrier()
+        if self.rank == 0:
+            start = MPI.Wtime()
+    
         if method not in np.array([SEQ, WY1, WY2, YTY1, YTY2]):
             raise InvalidMethodException(method)
         if p < 1 and method != SEQ:
@@ -132,10 +137,17 @@ class ToeplitzFactorizor:
         if (self.detailedSave):
             for b in self.blocks:        
                 np.save("results/{0}/L_{1}-{2}.npy".format(folder, 0, b.rank), b.getA1())
+        
+        self.comm.Barrier()
+        if self.rank == 0:
+            end = MPI.Wtime()
+            print "fact(): pre-k-loop: "+str(end - start)
+        
         #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
         
             ## TIME LOOPS (REMOVE)
+#            self.comm.Barrier()
             if self.rank == 0:
                 self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
@@ -144,43 +156,48 @@ class ToeplitzFactorizor:
             
             #### ALGORITHM 3: STEP 4 #### 
             # Build current generator at step k: A(k) = [A1(s1:e1,:) A2(s2:e2,:)]
+            
+#            self.comm.Barrier()
+            if self.rank == 0:
+                start = MPI.Wtime()
             s1, e1, s2, e2 = self.__set_curr_gen(k, n) # Set s1, e1, s2, e2, work1, work2 for all MPI processes.
+#            self.comm.Barrier()
+            if self.rank == 0:
+                end = MPI.Wtime()
+                print "Loop "+str(k)+" __set_curr_gen: "+str(end - start)
+            
             
             #### ALGORITHM 3: STEP 5 ####
             # Reduce current generator A(k) to proper form.
+#            self.comm.Barrier()
+            if self.rank == 0:
+                start = MPI.Wtime()
             if method==SEQ:
                 self.__seq_reduc(s1, e1, s2, e2)
             else:
                 self.__block_reduc(s1, e1, s2, e2, m, p, method, k)
+#            self.comm.Barrier()
+            if self.rank == 0:
+                end = MPI.Wtime()
+                print "Loop "+str(k)+" __block_reduc: "+str(end - start)
             
+#            self.comm.Barrier()
+            if self.rank == 0:
+                start = MPI.Wtime()
             # Save results immediately if we reached the end of the loop
             for b in self.blocks:
                 if b.rank <=e1 and b.rank + k == n*(1 + pad) - 1:
                     b.updateuc(k%self.n)
                 if b.rank <= e1 and self.detailedSave:
                     np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), b.getA1())
-                
-            # CheckPoint
-#            saveCheckpoint = False
-#            if self.rank==0:
-#                timePerLoop.append(time() - sum(timePerLoop) - startTime)
-#                
-#                elapsedTime = time() - startTime
-#                if elapsedTime + max(timePerLoop) >= MAXTIME: # Max instead of np.mean, just to be safe
-#                    print ("Saving Checkpoint #{0}".format(k))
-#                    if not os.path.exists("processedData/{0}/checkpoint/{1}/".format(folder, k)):
-#                        try:
-#                            os.makedirs("processedData/{0}/checkpoint/{1}/".format(folder, k))
-#                        except: pass
-#                    saveCheckpoint = True
-#            saveCheckpoint = self.comm.bcast(saveCheckpoint, root=0)
-#            
-#            if saveCheckpoint:
-#                for b in self.blocks:
-#                    # Creating Checkpoint
-#                    A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
-#                    A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
-#                exit()
+#            self.comm.Barrier()
+            if self.rank == 0:
+                end = MPI.Wtime()
+                print "Loop "+str(k)+" save end: "+str(end - start)
+            
+#            self.comm.Barrier()
+            if self.rank == 0:
+                start = MPI.Wtime()
             
             saveCheckpoint = np.array([0])
             if self.rank==0:
@@ -195,9 +212,9 @@ class ToeplitzFactorizor:
                         except:
                             pass
                     saveCheckpoint = np.array([1])
-#            self.comm.Barrier()
+            self.comm.Barrier()
             self.comm.Bcast(saveCheckpoint, root=0)
-#            self.comm.Barrier()
+            self.comm.Barrier()
             
             if saveCheckpoint:
                 for b in self.blocks:
@@ -205,6 +222,11 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
+            
+#            self.comm.Barrier()
+            if self.rank == 0:
+                end = MPI.Wtime()
+                print "Loop "+str(k)+" save checkpoint: "+str(end - start)
             
 #            self.comm.Barrier()
             if self.rank == 0:
@@ -230,9 +252,9 @@ class ToeplitzFactorizor:
             cinv = inv(c)
         else:
             cinv = np.empty((m,m),complex)
-#        self.comm.Barrier()
+        self.comm.Barrier()
         self.comm.Bcast(cinv, root=0)
-#        self.comm.Barrier()
+        self.comm.Barrier()
 
 #        cinv = self.comm.bcast(cinv, root=0) # This was replaced by Bcast and the initialization for rank!=0 directly above.
 
@@ -324,9 +346,9 @@ class ToeplitzFactorizor:
         if b.getCond()[0]:
             pass
         else:
-#            self.comm.Barrier()
+            self.comm.Barrier()
             self.comm.Bcast(b.getTemp(), root=s2)
-#            self.comm.Barrier()
+            self.comm.Barrier()
             
         temp = b.getTemp()
         for sb1 in range (0, m, p):
@@ -541,9 +563,9 @@ class ToeplitzFactorizor:
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
                 b.setTrue(isZero)
-#                self.comm.Barrier()
+                self.comm.Barrier()
                 self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
-#                self.comm.Barrier()
+                self.comm.Barrier()
             del A2
         
         if b.getCond()[0]:
