@@ -1,7 +1,7 @@
 import os,sys
 from mpi4py import MPI
 import numpy as np
-from new_factorize_parrallel import ToeplitzFactorizor
+from new_factorize_parallel import ToeplitzFactorizor
 from time import time
 
 import cProfile

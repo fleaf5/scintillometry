@@ -30,6 +30,7 @@ indices=range(N)
 start = time.time()
 for i in indices:
     C = np.dot(A,B)
+#    C = A.dot(B)
 end = time.time()
 
 print "Total time: "+str(end-start)
