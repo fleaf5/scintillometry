@@ -12,7 +12,7 @@ module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1
 method=yty2     # Scheme of decomposition. yty2 is the method described in Nilou's report.
 offsetn=0
 offsetm=0
-n=32
+n=16
 m=512
 p=1024            # VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
 pad=1            # 0 for no padding; 1 for padding.

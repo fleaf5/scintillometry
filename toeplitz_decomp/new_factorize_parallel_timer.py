@@ -343,7 +343,8 @@ class ToeplitzFactorizor:
                 self.comm.Barrier()
                 if self.rank == 0:
                     end_hv = MPI.Wtime()
-                    if sb1==0 and j<4:
+                    if sb1 == 0:
+#                    if sb1==0 and j<4:
                         print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" __house_vec: "+str(end_hv-start_hv)
   
                 self.comm.Barrier()
@@ -356,7 +357,8 @@ class ToeplitzFactorizor:
                 self.comm.Barrier()
                 if self.rank == 0:
                     end_hvtosu = MPI.Wtime()
-                    if sb1==0 and j<4:
+                    if sb1 == 0:
+#                    if sb1==0 and j<4:
                         print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" hv-to-su: "+str(end_hvtosu-start_hvtosu)
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
@@ -367,7 +369,8 @@ class ToeplitzFactorizor:
                 self.comm.Barrier()
                 if self.rank == 0:
                     end_su = MPI.Wtime()
-                    if sb1==0 and j<4:
+                    if sb1 == 0:
+#                    if sb1==0 and j<4:
                         print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" __seq_update: "+str(end_su-start_su)
 
             self.comm.Barrier()

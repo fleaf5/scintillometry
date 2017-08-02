@@ -114,6 +114,8 @@ class ToeplitzFactorizor:
         
         folder = self.folder
         
+        self.comm.Barrier()
+        
         if self.kCheckpoint==0:
             #### ALGORITHM 3: STEP 1 ####
             self.__setup_gen()
@@ -129,9 +131,14 @@ class ToeplitzFactorizor:
                 if not pad and b.rank == n*(1 + pad) - 1:
                     b.updateuc(b.rank)
                     
+        self.comm.Barrier()
+                
         if (self.detailedSave):
             for b in self.blocks:        
                 np.save("results/{0}/L_{1}-{2}.npy".format(folder, 0, b.rank), b.getA1())
+                
+        self.comm.Barrier()
+        
         #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
         
@@ -144,16 +151,19 @@ class ToeplitzFactorizor:
             
             #### ALGORITHM 3: STEP 4 #### 
             # Build current generator at step k: A(k) = [A1(s1:e1,:) A2(s2:e2,:)]
+            self.comm.Barrier()
             s1, e1, s2, e2 = self.__set_curr_gen(k, n) # Set s1, e1, s2, e2, work1, work2 for all MPI processes.
             
             #### ALGORITHM 3: STEP 5 ####
             # Reduce current generator A(k) to proper form.
+            self.comm.Barrier()
             if method==SEQ:
                 self.__seq_reduc(s1, e1, s2, e2)
             else:
                 self.__block_reduc(s1, e1, s2, e2, m, p, method, k)
             
             # Save results immediately if we reached the end of the loop
+            self.comm.Barrier()
             for b in self.blocks:
                 if b.rank <=e1 and b.rank + k == n*(1 + pad) - 1:
                     b.updateuc(k%self.n)
@@ -182,6 +192,7 @@ class ToeplitzFactorizor:
 #                    A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
 #                exit()
             
+            self.comm.Barrier()
             saveCheckpoint = np.array([0])
             if self.rank==0:
                 timePerLoop.append(time() - sum(timePerLoop) - startTime)
@@ -198,7 +209,7 @@ class ToeplitzFactorizor:
 #            self.comm.Barrier()
             self.comm.Bcast(saveCheckpoint, root=0)
 #            self.comm.Barrier()
-            
+            self.comm.Barrier()
             if saveCheckpoint:
                 for b in self.blocks:
                     # Creating Checkpoint
@@ -300,22 +311,27 @@ class ToeplitzFactorizor:
                 # Compute X2 and beta for jth Householder vector
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                self.comm.Barrier()
                 data= self.__house_vec(j1, s2, j, b)
-  
+                
+                self.comm.Barrier()
                 temp[j] = data
                 X2 = data[:self.m]
                 beta = data[-1]
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                self.comm.Barrier()
                 self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
-
+            self.comm.Barrier()
             XX2 = temp[:,:m]
+            self.comm.Barrier()
             if b.rank == s2 or b.rank == 0:
                 S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
                 self.__set_curr_gen(s2, n) # Updates work1, work2.
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
+            self.comm.Barrier()
             X2_list[sb1:sb1+p_eff,:] = temp
         
         b.createTemp(np.zeros((m, m+1), complex))
@@ -348,9 +364,13 @@ class ToeplitzFactorizor:
             beta = temp2[-1,-1]
             if method == YTY1 or YTY2:
                 S = np.zeros((p, p), complex)
+            self.comm.Barrier()
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
+            self.comm.Barrier()
             self.__set_curr_gen(s2, n) # Updates work
+            self.comm.Barrier()
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
+            self.comm.Barrier()
         return
     
     def __new_block_update(self, X2, sb1, eb1, u1, e1,s2, sb2, eb2, u2, e2, S, m, p_eff):
@@ -520,7 +540,6 @@ class ToeplitzFactorizor:
             v = np.empty(end-start,complex)
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
-            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))
             del A2
         
     def __house_vec(self, j, s2, j_count, b):
@@ -555,6 +574,7 @@ class ToeplitzFactorizor:
         
         if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
+            
             sigma = A2[j, :].dot(np.conj(A2[j,:]))
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
