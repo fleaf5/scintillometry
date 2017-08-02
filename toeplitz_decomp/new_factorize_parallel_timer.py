@@ -103,7 +103,7 @@ class ToeplitzFactorizor:
     #### ALGORITHM 3 ####
     def fact(self, method, p):
         
-#        self.comm.Barrier()
+        self.comm.Barrier()
         if self.rank == 0:
             start = MPI.Wtime()
     
@@ -141,15 +141,15 @@ class ToeplitzFactorizor:
         self.comm.Barrier()
         if self.rank == 0:
             end = MPI.Wtime()
-            print "fact(): pre-k-loop: "+str(end - start)
+            print "fact(): pre-kloop: "+str(end - start)
         
         #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
         
             ## TIME LOOPS (REMOVE)
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                self.start_time = MPI.Wtime()
+                self.start_kloop = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -157,47 +157,47 @@ class ToeplitzFactorizor:
             #### ALGORITHM 3: STEP 4 #### 
             # Build current generator at step k: A(k) = [A1(s1:e1,:) A2(s2:e2,:)]
             
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                start = MPI.Wtime()
+                start_scg1 = MPI.Wtime()
             s1, e1, s2, e2 = self.__set_curr_gen(k, n) # Set s1, e1, s2, e2, work1, work2 for all MPI processes.
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                end = MPI.Wtime()
-                print "Loop "+str(k)+" __set_curr_gen: "+str(end - start)
+                end_scg1 = MPI.Wtime()
+                print "Loop "+str(k)+" __set_curr_gen (1): "+str(end_scg1-start_scg1)
             
             
             #### ALGORITHM 3: STEP 5 ####
             # Reduce current generator A(k) to proper form.
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                start = MPI.Wtime()
+                start_br = MPI.Wtime()
             if method==SEQ:
                 self.__seq_reduc(s1, e1, s2, e2)
             else:
                 self.__block_reduc(s1, e1, s2, e2, m, p, method, k)
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                end = MPI.Wtime()
-                print "Loop "+str(k)+" __block_reduc: "+str(end - start)
+                end_br = MPI.Wtime()
+                print "Loop "+str(k)+" __block_reduc: "+str(end_br-start_br)
             
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                start = MPI.Wtime()
+                start_se = MPI.Wtime()
             # Save results immediately if we reached the end of the loop
             for b in self.blocks:
                 if b.rank <=e1 and b.rank + k == n*(1 + pad) - 1:
                     b.updateuc(k%self.n)
                 if b.rank <= e1 and self.detailedSave:
                     np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), b.getA1())
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                end = MPI.Wtime()
-                print "Loop "+str(k)+" save end: "+str(end - start)
+                end_se = MPI.Wtime()
+                print "Loop "+str(k)+" save end: "+str(end_se-start_se)
             
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                start = MPI.Wtime()
+                start_scp = MPI.Wtime()
             
             saveCheckpoint = np.array([0])
             if self.rank==0:
@@ -223,15 +223,15 @@ class ToeplitzFactorizor:
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
             
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                end = MPI.Wtime()
-                print "Loop "+str(k)+" save checkpoint: "+str(end - start)
+                end_scp = MPI.Wtime()
+                print "Loop "+str(k)+" save checkpoint: "+str(end_scp-start_scp)
             
-#            self.comm.Barrier()
+            self.comm.Barrier()
             if self.rank == 0:
-                self.end_time = MPI.Wtime()
-                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
+                self.end_kloop = MPI.Wtime()
+                print "Loop "+str(k)+" time = "+str(self.end_kloop-self.start_kloop)
 
 
     ## Private Methods
@@ -290,11 +290,15 @@ class ToeplitzFactorizor:
 
     #### ALGORITHM 8 ####
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
+        
+        self.comm.Barrier()
+        if self.rank == 0:
+            start_prejloop1 = MPI.Wtime()
+        
         n = self.n
        
         X2_list = np.zeros((m, m+1), complex)
         for sb1 in range (0, m, p):
-            
             for b in self.blocks:
                 b.setWork(None, None)
                 if b.rank==0: b.setWork1(s2)
@@ -313,6 +317,15 @@ class ToeplitzFactorizor:
             elif method == YTY1 or YTY2:
                 S = np.zeros((p, p), complex)
             
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_prejloop1 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" pre-jloop1: "+str(end_prejloop1-start_prejloop1)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_jloop1 = MPI.Wtime()
             
             for j in range(0, p_eff):
                 j1 = sb1 + j
@@ -322,37 +335,139 @@ class ToeplitzFactorizor:
                 # Compute X2 and beta for jth Householder vector
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                
+                self.comm.Barrier()
+                if self.rank == 0:
+                    start_hv = MPI.Wtime()
                 data= self.__house_vec(j1, s2, j, b)
+                self.comm.Barrier()
+                if self.rank == 0:
+                    end_hv = MPI.Wtime()
+                    if sb1==0 and j<4:
+                        print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" __house_vec: "+str(end_hv-start_hv)
   
+                self.comm.Barrier()
+                if self.rank == 0:
+                    start_hvtosu = MPI.Wtime()
                 temp[j] = data
                 X2 = data[:self.m]
                 beta = data[-1]
                 
-                # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
-                self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
-
-            XX2 = temp[:,:m]
-            if b.rank == s2 or b.rank == 0:
-                S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
-                self.__set_curr_gen(s2, n) # Updates work1, work2.
+                self.comm.Barrier()
+                if self.rank == 0:
+                    end_hvtosu = MPI.Wtime()
+                    if sb1==0 and j<4:
+                        print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" hv-to-su: "+str(end_hvtosu-start_hvtosu)
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                self.comm.Barrier()
+                if self.rank == 0:
+                    start_su = MPI.Wtime()
+                self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
+                self.comm.Barrier()
+                if self.rank == 0:
+                    end_su = MPI.Wtime()
+                    if sb1==0 and j<4:
+                        print "Loop "+str(k)+" sb1 "+str(sb1)+" j "+str(j)+" __seq_update: "+str(end_su-start_su)
+
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_jloop1 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" jloop1: "+str(end_jloop1-start_jloop1)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_jloop1toagg1 = MPI.Wtime()
+            XX2 = temp[:,:m]
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_jloop1toagg1 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" jloop1-to-agg1: "+str(end_jloop1toagg1-start_jloop1toagg1)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_agg1 = MPI.Wtime()
+            if b.rank == s2 or b.rank == 0:
+                S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_agg1 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __aggregate (1): "+str(end_agg1-start_agg1)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_scg2 = MPI.Wtime()
+            if b.rank == s2 or b.rank == 0:
+                self.__set_curr_gen(s2, n) # Updates work1, work2.
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_scg2 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __set_curr_gen (2): "+str(end_scg2-start_scg2)
+                
+                # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_nbu = MPI.Wtime()
+            if b.rank == s2 or b.rank == 0:
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_nbu = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __new_block_update: "+str(end_nbu-start_nbu)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_postnbu = MPI.Wtime()
             X2_list[sb1:sb1+p_eff,:] = temp
-        
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_postnbu = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" post-nbu: "+str(end_postnbu-start_postnbu)
+
+        self.comm.Barrier()
+        if self.rank == 0:
+            start_prebcast1 = MPI.Wtime()
         b.createTemp(np.zeros((m, m+1), complex))
         b.setTemp(X2_list)
+        self.comm.Barrier()
+        if self.rank == 0:
+            end_prebcast1 = MPI.Wtime()
+            if sb1==0:
+                print "Loop "+str(k)+" pre-Bcast (1): "+str(end_prebcast1-start_prebcast1)
         
+        self.comm.Barrier()
+        if self.rank == 0:
+            start_bcast1 = MPI.Wtime()
         if b.getCond()[0]:
             pass
         else:
-            self.comm.Barrier()
             self.comm.Bcast(b.getTemp(), root=s2)
-            self.comm.Barrier()
-            
+        self.comm.Barrier()
+        if self.rank == 0:
+            end_bcast1 = MPI.Wtime()
+            if sb1==0:
+                print "Loop "+str(k)+" Bcast (1): "+str(end_bcast1-start_bcast1)
+        
+        self.comm.Barrier()
+        if self.rank == 0:
+            start_postbcast1 = MPI.Wtime()
         temp = b.getTemp()
+        self.comm.Barrier()
+        if self.rank == 0:
+            end_postbcast1 = MPI.Wtime()
+            if sb1==0:
+                print "Loop "+str(k)+" post-Bcast (1): "+str(end_postbcast1-start_postbcast1)
+        
         for sb1 in range (0, m, p):
-            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_preagg2 = MPI.Wtime()
             for b in self.blocks:
                 b.setWork(None, None)
                 if b.rank==0: b.setWork1(s2)
@@ -370,9 +485,41 @@ class ToeplitzFactorizor:
             beta = temp2[-1,-1]
             if method == YTY1 or YTY2:
                 S = np.zeros((p, p), complex)
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_preagg2 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" pre-agg (2): "+str(end_preagg2-start_preagg2)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_agg2 = MPI.Wtime()
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_agg2 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __aggregate (2): "+str(end_agg2-start_agg2)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_scg3 = MPI.Wtime()
             self.__set_curr_gen(s2, n) # Updates work
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_scg3 = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __set_curr_gen (3): "+str(end_scg3-start_scg3)
+            
+            self.comm.Barrier()
+            if self.rank == 0:
+                start_bu = MPI.Wtime()
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
+            self.comm.Barrier()
+            if self.rank == 0:
+                end_bu = MPI.Wtime()
+                if sb1==0:
+                    print "Loop "+str(k)+" sb1 "+str(sb1)+" __block_update: "+str(end_bu-start_bu)
         return
     
     def __new_block_update(self, X2, sb1, eb1, u1, e1,s2, sb2, eb2, u2, e2, S, m, p_eff):
