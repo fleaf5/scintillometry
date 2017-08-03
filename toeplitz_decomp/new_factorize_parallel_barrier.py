@@ -67,15 +67,9 @@ class ToeplitzFactorizor:
                 np.save("results/{0}".format(folder + "_uc.npy"), uc)
                 
         # Ensure that files and directories are created before the rest of the nodes continue.
-#        initDone=False
-#        initDone = self.comm.bcast(initDone, root=0)
-        
-        # Replaced above bcast call with the following Bcast call.
         initDone = np.array([0])
         
-        self.comm.Barrier()
         self.comm.Bcast(initDone, root=0)
-        self.comm.Barrier()
         
         
     def addBlock(self, rank):
@@ -134,8 +128,6 @@ class ToeplitzFactorizor:
         #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             
-            
-            
             ## TIME LOOPS (REMOVE)
             if self.rank == 0:
                 self.start_time = MPI.Wtime()
@@ -162,27 +154,6 @@ class ToeplitzFactorizor:
                     np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), b.getA1())
                 
             # CheckPoint
-#            saveCheckpoint = False
-#            if self.rank==0:
-#                timePerLoop.append(time() - sum(timePerLoop) - startTime)
-#                
-#                elapsedTime = time() - startTime
-#                if elapsedTime + max(timePerLoop) >= MAXTIME: # Max instead of np.mean, just to be safe
-#                    print ("Saving Checkpoint #{0}".format(k))
-#                    if not os.path.exists("processedData/{0}/checkpoint/{1}/".format(folder, k)):
-#                        try:
-#                            os.makedirs("processedData/{0}/checkpoint/{1}/".format(folder, k))
-#                        except: pass
-#                    saveCheckpoint = True
-#            saveCheckpoint = self.comm.bcast(saveCheckpoint, root=0)
-#            
-#            if saveCheckpoint:
-#                for b in self.blocks:
-#                    # Creating Checkpoint
-#                    A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
-#                    A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
-#                exit()
-            
             saveCheckpoint = np.array([0])
             if self.rank==0:
                 timePerLoop.append(time() - sum(timePerLoop) - startTime)
@@ -196,9 +167,7 @@ class ToeplitzFactorizor:
                         except:
                             pass
                     saveCheckpoint = np.array([1])
-            self.comm.Barrier()
             self.comm.Bcast(saveCheckpoint, root=0)
-            self.comm.Barrier()
             
             if saveCheckpoint:
                 for b in self.blocks:
@@ -207,7 +176,6 @@ class ToeplitzFactorizor:
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
             
-            self.comm.Barrier()
             if self.rank == 0:
                 self.end_time = MPI.Wtime()
                 print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
@@ -231,11 +199,8 @@ class ToeplitzFactorizor:
             cinv = inv(c)
         else:
             cinv = np.empty((m,m),complex)
-        self.comm.Barrier()
+            
         self.comm.Bcast(cinv, root=0)
-        self.comm.Barrier()
-
-#        cinv = self.comm.bcast(cinv, root=0) # This was replaced by Bcast and the initialization for rank!=0 directly above.
 
         for b in self.blocks:
             if b.rank < self.n:
@@ -301,6 +266,8 @@ class ToeplitzFactorizor:
                 # Compute X2 and beta for jth Householder vector
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                
+                self.comm.Barrier()
                 data= self.__house_vec(j1, s2, j, b)
   
                 temp[j] = data
@@ -308,6 +275,8 @@ class ToeplitzFactorizor:
                 beta = data[-1]
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
+                
+                self.comm.Barrier()
                 self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
 
             XX2 = temp[:,:m]
@@ -325,9 +294,7 @@ class ToeplitzFactorizor:
         if b.getCond()[0]:
             pass
         else:
-            self.comm.Barrier()
             self.comm.Bcast(b.getTemp(), root=s2)
-            self.comm.Barrier()
             
         temp = b.getTemp()
         for sb1 in range (0, m, p):
@@ -351,6 +318,8 @@ class ToeplitzFactorizor:
                 S = np.zeros((p, p), complex)
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
             self.__set_curr_gen(s2, n) # Updates work
+            
+            self.comm.Barrier()
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
         return
     
@@ -374,8 +343,6 @@ class ToeplitzFactorizor:
                 B2 = np.empty((m - s, p_eff), complex)
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
-                
-                print type(invT[0,0])
                 
                 M = M.dot(inv(invT[:p_eff,:p_eff]))
                 
@@ -436,7 +403,9 @@ class ToeplitzFactorizor:
                 
                 A2 = b.getA2()
                 A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                del A2 
+                del A2
+            
+            self.comm.Barrier()
             return 
         
         
@@ -479,7 +448,7 @@ class ToeplitzFactorizor:
         for b in self.blocks: # rank s2=k sends to rank 0.
             if b.work2 == None: 
                 continue
-            B1 = np.dot(b.getA2(), np.conj(X2.T))
+            B1 = b.getA2().dot(np.conj(X2.T))
             
             start = 0
             end = m
@@ -525,6 +494,8 @@ class ToeplitzFactorizor:
             A2 = b.getA2()
             A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))
             del A2
+            
+        self.comm.Barrier()
         
     def __house_vec(self, j, s2, j_count, b):
         isZero = np.array([0])
@@ -544,9 +515,7 @@ class ToeplitzFactorizor:
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
                 b.setTrue(isZero)
-                self.comm.Barrier()
                 self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
-                self.comm.Barrier()
             del A2
         
         if b.getCond()[0]:
@@ -554,6 +523,7 @@ class ToeplitzFactorizor:
             data[:self.m] = X2
             data[-1] = beta[0] 
             b.setTemp(data)
+            self.comm.Barrier()
             return data
         
         if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
@@ -591,5 +561,6 @@ class ToeplitzFactorizor:
             self.comm.Recv(data, source=s2%self.size, tag=5*num + s2)
             del A1
 
+        self.comm.Barrier()
         return data # X2, beta
 

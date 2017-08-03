@@ -338,6 +338,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
+                print type(invT[0,0])
+                
                 M = M.dot(inv(invT[:p_eff,:p_eff]))
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
