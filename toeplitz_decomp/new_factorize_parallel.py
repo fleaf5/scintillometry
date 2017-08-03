@@ -440,7 +440,7 @@ class ToeplitzFactorizor:
         for b in self.blocks: # rank s2=k sends to rank 0.
             if b.work2 == None: 
                 continue
-            B1 = b.getA2().dot(np.conj(X2.T))
+            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j.
             
             start = 0
             end = m
@@ -448,7 +448,7 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m:
                 end = e2 % m or m
-            B1 = B1[start:end]
+            B1 = B1[start:end] # size decreases with j.
             self.comm.Send(B1, dest=b.getWork2()%self.size, tag=4*num + b.getWork2())
 
         
@@ -461,15 +461,15 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e1/m:
                 end = e1 % m or m
-            B1 = np.empty(end-start, complex)
+            B1 = np.empty(end-start, complex) # size decreases with j.
             
             self.comm.Recv(B1, source=b.getWork1()%self.size, tag=4*num + b.rank)
             A1 = b.getA1()
-            B2 = A1[start:end, j]
+            B2 = A1[start:end, j] # size decreases with j.
                 
-            v = B2 - B1
+            v = B2 - B1 # size decreases with j.
             self.comm.Send(v, (b.getWork1())%self.size, 5*num + b.getWork1())
-            A1[start:end,j] -= beta*v
+            A1[start:end,j] -= beta*v # size decreases with j.
             del A1
 
         for b in self.blocks:# rank s2=k receives from rank 0.
@@ -481,10 +481,10 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m :
                 end = e2 % m or m
-            v = np.empty(end-start,complex)
+            v = np.empty(end-start,complex) # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
-            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))
+            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))# size of v decreases with j.
             del A2
         
     def __house_vec(self, j, s2, j_count, b):

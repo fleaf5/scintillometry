@@ -15,6 +15,8 @@ from GeneratorBlock import Block
 
 from time import time
 
+import cProfile
+
 MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
 startTime = time()
@@ -268,7 +270,18 @@ class ToeplitzFactorizor:
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 
                 self.comm.Barrier()
-                data= self.__house_vec(j1, s2, j, b)
+                if (self.rank == k or self.rank == 0) and (k<4) and (j<4):
+                    self.profileName = "house_n"+str(self.n)+"_m"+str(self.m/2)+"_p"+str(p)+"_k"+str(k)+"_sb1"+str(sb1)+"_j"+str(j)+"_rank"+str(self.rank)
+#                    cProfile.run('data=self.__house_vec(j1, s2, j, b)', self.profileName)
+#                    cProfile.runctx('data=self.__house_vec(j1, s2, j, b)', globals(), locals(), filename=self.profileName)
+#                    cProfile.runcall('data=self.__house_vec(j1, s2, j, b)',filename=self.profileName)
+                    pr = cProfile.Profile()
+                    pr.enable()
+                    data= self.__house_vec(j1, s2, j, b)
+                    pr.disable()
+                    pr.dump_stats(self.profileName)
+                else:
+                    data= self.__house_vec(j1, s2, j, b)
   
                 temp[j] = data
                 X2 = data[:self.m]
@@ -277,7 +290,18 @@ class ToeplitzFactorizor:
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 
                 self.comm.Barrier()
-                self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
+                if (self.rank == k or self.rank == 0) and (k<4) and (j<4):
+                    self.profileName = "seq_n"+str(self.n)+"_m"+str(self.m/2)+"_p"+str(p)+"_k"+str(k)+"_sb1"+str(sb1)+"_j"+str(j)+"_rank"+str(self.rank)
+#                    cProfile.run('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', self.profilename)
+#                    cProfile.runctx('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', globals(), locals(), filename=self.profileName)
+#                    cProfile.runcall('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', filename=self.profilename)
+                    pr = cProfile.Profile()
+                    pr.enable()
+                    self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
+                    pr.disable()
+                    pr.dump_stats(self.profileName)
+                else:
+                    self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
 
             XX2 = temp[:,:m]
             if b.rank == s2 or b.rank == 0:
