@@ -4,7 +4,7 @@ import numpy as np
 from new_factorize_parallel_timer_seq import ToeplitzFactorizor
 from time import time
 
-import cProfile
+#import cProfile
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()

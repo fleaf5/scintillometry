@@ -507,7 +507,7 @@ class ToeplitzFactorizor:
             if b.rank == e2/m:
                 end = e2 % m or m
             B1 = B1[start:end] # size decreases with j.
-            self.comm.Send(B1, dest=b.getWork2()%self.size, tag=4*num + b.getWork2())
+            self.comm.Isend(B1, dest=b.getWork2()%self.size, tag=4*num + b.getWork2())
         self.comm.Barrier()
         if self.rank == 0:
             end_su_1 = MPI.Wtime()
@@ -533,7 +533,7 @@ class ToeplitzFactorizor:
             B2 = A1[start:end, j] # size decreases with j.
                 
             v = B2 - B1 # size decreases with j.
-            self.comm.Send(v, (b.getWork1())%self.size, 5*num + b.getWork1())
+            self.comm.Isend(v, (b.getWork1())%self.size, 5*num + b.getWork1())
             A1[start:end,j] -= beta*v # size decreases with j.
             del A1
         self.comm.Barrier()
