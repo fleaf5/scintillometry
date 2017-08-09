@@ -4,8 +4,8 @@ import time
 
 # Initialize matrices.
 n = int(sys.argv[1])
-m = int(sys.argv[2])
-N = int(sys.argv[3])
+m = 1
+N = int(sys.argv[2])
 
 
 # Create random matrices (the same ones each time). 
@@ -25,14 +25,23 @@ B = B_real+1.0j*B_imaginary
 del B_real
 del B_imaginary
 
+BT = B.T
+
 # Matrix multiplication.
 
 indices=range(N)
-start = time.time()
+start_dot = time.time()
 for i in indices:
     C = np.dot(A,B)
-#    C = A.dot(B)
-end = time.time()
+#    C = np.outer(A,B)
+end_dot = time.time()
 
-print "Total time: "+str(end-start)
-print "Time per multiplication: "+str((end-start)/N)
+start_outer = time.time()
+for i in indices:
+    D = np.outer(A,BT)
+end_outer = time.time()
+
+print np.array_equal(C,D)
+#print "Total time: "+str(end-start)
+print "Time per multiplication (dot)  : "+str((end_dot-start_dot)/N)
+print "Time per multiplication (outer): "+str((end_outer-start_outer)/N)
