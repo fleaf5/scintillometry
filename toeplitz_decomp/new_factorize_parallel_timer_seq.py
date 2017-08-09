@@ -265,7 +265,8 @@ class ToeplitzFactorizor:
                 self.su_pre1_times   = np.zeros(num_loops)
                 self.su_1_times      = np.zeros(num_loops)
                 self.su_2_times      = np.zeros(num_loops)
-                self.su_3_times      = np.zeros(num_loops)
+                self.su_3a_times     = np.zeros(num_loops)
+                self.su_3b_times     = np.zeros(num_loops)
                 self.su_times        = np.zeros(num_loops)
             
             for j in range(0, p_eff):
@@ -318,7 +319,8 @@ class ToeplitzFactorizor:
                 print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update pre-1 avg.: "+str(np.mean(self.su_pre1_times))
                 print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update 1 avg.: "+str(np.mean(self.su_1_times))
                 print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update 2 avg.: "+str(np.mean(self.su_2_times))
-                print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update 3 avg.: "+str(np.mean(self.su_3_times))
+                print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update 3a avg.: "+str(np.mean(self.su_3a_times))
+                print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update 3b avg.: "+str(np.mean(self.su_3b_times))
                 print "Loop "+str(k)+" sb1 "+str(sb1)+" __seq_update avg.: "+str(np.mean(self.su_times))
                 
             XX2 = temp[:,:m]
@@ -544,7 +546,7 @@ class ToeplitzFactorizor:
 
         self.comm.Barrier()
         if self.rank == 0:
-            start_su_3 = MPI.Wtime()
+            start_su_3a = MPI.Wtime()
         for b in self.blocks:# rank s2=k receives from rank 0.
             if b.work2 == None: 
                 continue
@@ -557,13 +559,26 @@ class ToeplitzFactorizor:
             v = np.empty(end-start,complex) # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
+        self.comm.Barrier()
+        if self.rank == 0:
+            end_su_3a = MPI.Wtime()
+            self.su_3a_times[j] = end_su_3a-start_su_3a
+            print "Loop "+str(s2)+" j "+str(j)+" __seq_update 3a: "+str(end_su_3a-start_su_3a)
+        
+        self.comm.Barrier()
+        if self.rank == 0:
+            start_su_3b = MPI.Wtime()
+        for b in self.blocks:# rank s2=k receives from rank 0.
+            if b.work2 == None: 
+                continue
             A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))# size of v decreases with j.
             del A2
         self.comm.Barrier()
         if self.rank == 0:
-            end_su_3 = MPI.Wtime()
-            self.su_3_times[j] = end_su_3-start_su_3
-            print "Loop "+str(s2)+" j "+str(j)+" __seq_update 3: "+str(end_su_3-start_su_3)
+            end_su_3b = MPI.Wtime()
+            self.su_3b_times[j] = end_su_3b-start_su_3b
+            print "Loop "+str(s2)+" j "+str(j)+" __seq_update 3b: "+str(end_su_3b-start_su_3b)
+        
         
     def __house_vec(self, j, s2, j_count, b):
         
