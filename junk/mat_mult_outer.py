@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 import time
+from scipy.linalg.blas import zgeru
+#import scipy as sp
 
 # Initialize matrices.
 n = int(sys.argv[1])
@@ -45,8 +47,15 @@ for i in indices:
     E = np.einsum('i,j->ij', A, B)
 end_ein = time.time()
 
-print bool(np.array_equal(C,D) and np.array_equal(D,E))
+start_zgeru = time.time()
+for i in indices:
+    F = zgeru(1, A, B)
+end_zgeru = time.time()
+
+
+print bool(np.array_equal(C,D) and np.array_equal(D,E) and np.array_equal(E,F))
 print "Time per multiplication dot()   : "+str((end_dot-start_dot)/N)
 print "Time per multiplication outer() : "+str((end_outer-start_outer)/N)
 print "Time per multiplication einsum(): "+str((end_ein-start_ein)/N)
+print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
 
