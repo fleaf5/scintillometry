@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import time
-from scipy.linalg.blas import zgeru
+#from scipy.linalg.blas import zgeru
 import scipy as sp
 
 # Initialize matrices.
