@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import time
 from scipy.linalg.blas import zgeru
-#import scipy as sp
+import scipy as sp
 
 # Initialize matrices.
 n = int(sys.argv[1])
@@ -47,15 +47,45 @@ for i in indices:
     E = np.einsum('i,j->ij', A, B)
 end_ein = time.time()
 
-start_zgeru = time.time()
+start_spdot = time.time()
 for i in indices:
-    F = zgeru(1, A, B)
-end_zgeru = time.time()
+    F = sp.dot(A_2d,B_2d)
+end_spdot = time.time()
+
+start_spouter = time.time()
+for i in indices:
+    G = sp.outer(A, B)
+end_spouter = time.time()
+
+#start_zgeru = time.time()
+#for i in indices:
+#    H = zgeru(1, A, B)
+#end_zgeru = time.time()
+
+#start_man1 = time.time()
+#for i in indices:
+#    I = np.empty((n,n),complex)
+#    for j in range(n):
+#        for k in range(n):
+#            G[j,k] = A[j]*B[k]
+#end_man1 = time.time()
+
+#start_man2 = time.time()
+#for i in indices:
+#    J = np.empty((n,n),complex)
+#    for k in range(n):
+#        for j in range(n):
+#            G[j,k] = A[j]*B[k]
+#end_man2 = time.time()
 
 
-print bool(np.array_equal(C,D) and np.array_equal(D,E) and np.array_equal(E,F))
-print "Time per multiplication dot()   : "+str((end_dot-start_dot)/N)
-print "Time per multiplication outer() : "+str((end_outer-start_outer)/N)
-print "Time per multiplication einsum(): "+str((end_ein-start_ein)/N)
-print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
+print bool(np.array_equal(C,D) and np.array_equal(D,E) and np.array_equal(E,F) and np.array_equal(F,G))
+print "Time per multiplication np.dot()  : "+str((end_dot-start_dot)/N)
+print "Time per multiplication np.outer(): "+str((end_outer-start_outer)/N)
+print "Time per multiplication einsum()  : "+str((end_ein-start_ein)/N)
+print "Time per multiplication sp.dot()  : "+str((end_spdot-start_spdot)/N)
+print "Time per multiplication sp.outer(): "+str((end_spouter-start_spouter)/N)
+#print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
+#print "Time per multiplication man1    : "+str((end_man1-start_man1)/N)
+#print "Time per multiplication man2    : "+str((end_man2-start_man2)/N)
 
