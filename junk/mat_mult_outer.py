@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import time
-#from scipy.linalg.blas import zgeru
+from scipy.linalg.blas import zgeru
 import scipy as sp
 
 # Initialize matrices.
@@ -57,10 +57,10 @@ for i in indices:
     G = sp.outer(A, B)
 end_spouter = time.time()
 
-#start_zgeru = time.time()
-#for i in indices:
-#    H = zgeru(1, A, B)
-#end_zgeru = time.time()
+start_zgeru = time.time()
+for i in indices:
+    H = zgeru(1, A, B)
+end_zgeru = time.time()
 
 #start_man1 = time.time()
 #for i in indices:
@@ -85,7 +85,7 @@ print "Time per multiplication np.outer(): "+str((end_outer-start_outer)/N)
 print "Time per multiplication einsum()  : "+str((end_ein-start_ein)/N)
 print "Time per multiplication sp.dot()  : "+str((end_spdot-start_spdot)/N)
 print "Time per multiplication sp.outer(): "+str((end_spouter-start_spouter)/N)
-#print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
+print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
 #print "Time per multiplication man1    : "+str((end_man1-start_man1)/N)
 #print "Time per multiplication man2    : "+str((end_man2-start_man2)/N)
 
