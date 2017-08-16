@@ -32,59 +32,70 @@ indices=range(N)
 
 A_2d = A[:,np.newaxis]
 B_2d = B[np.newaxis,:]
-start_dot = time.time()
+
+times_dot = np.empty(N)
 for i in indices:
+    start_dot = time.time()
     C = np.dot(A_2d,B_2d)
-end_dot = time.time()
+    end_dot = time.time()
+    times_dot[i] = end_dot - start_dot
 
-start_outer = time.time()
+times_outer = np.empty(N)
 for i in indices:
+    start_outer = time.time()
     D = np.outer(A,B)
-end_outer = time.time()
+    end_outer = time.time()
+    times_outer[i] = end_outer - start_outer
 
-start_ein = time.time()
+times_ein = np.empty(N)
 for i in indices:
+    start_ein = time.time()
     E = np.einsum('i,j->ij', A, B)
-end_ein = time.time()
+    end_ein = time.time()
+    times_ein[i] = end_ein - start_ein
 
-start_spdot = time.time()
+times_spdot = np.empty(N)
 for i in indices:
+    start_spdot = time.time()
     F = sp.dot(A_2d,B_2d)
-end_spdot = time.time()
+    end_spdot = time.time()
+    times_spdot[i] = end_spdot - start_spdot
 
-start_spouter = time.time()
+times_spouter = np.empty(N)
 for i in indices:
+    start_spouter = time.time()
     G = sp.outer(A, B)
-end_spouter = time.time()
+    end_spouter = time.time()
+    times_spouter[i] = end_spouter - start_spouter
 
-start_zgeru = time.time()
+times_zgeru = np.empty(N)
 for i in indices:
+    start_zgeru = time.time()
     H = zgeru(1, A, B)
-end_zgeru = time.time()
+    end_zgeru = time.time()
+    times_zgeru[i] = end_zgeru - start_zgeru
 
-#start_man1 = time.time()
-#for i in indices:
-#    I = np.empty((n,n),complex)
-#    for j in range(n):
-#        for k in range(n):
-#            G[j,k] = A[j]*B[k]
-#end_man1 = time.time()
-
-#start_man2 = time.time()
-#for i in indices:
-#    J = np.empty((n,n),complex)
-#    for k in range(n):
-#        for j in range(n):
-#            G[j,k] = A[j]*B[k]
-#end_man2 = time.time()
-
-
-print bool(np.array_equal(C,D) and np.array_equal(D,E) and np.array_equal(E,F) and np.array_equal(F,G))
-print "Time per multiplication np.dot()  : "+str((end_dot-start_dot)/N)
-print "Time per multiplication np.outer(): "+str((end_outer-start_outer)/N)
-print "Time per multiplication einsum()  : "+str((end_ein-start_ein)/N)
-print "Time per multiplication sp.dot()  : "+str((end_spdot-start_spdot)/N)
-print "Time per multiplication sp.outer(): "+str((end_spouter-start_spouter)/N)
-print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
-#print "Time per multiplication man1    : "+str((end_man1-start_man1)/N)
-#print "Time per multiplication man2    : "+str((end_man2-start_man2)/N)
+print "\nnp.dot(): "
+print "min  = "+str(times_dot.min())
+print "max  = "+str(times_dot.max())
+print "mean = "+str(times_dot.mean())
+print "\nnp.outer(): "
+print "min  = "+str(times_outer.min())
+print "max  = "+str(times_outer.max())
+print "mean = "+str(times_outer.mean())
+print "\neinsum(): "
+print "min  = "+str(times_ein.min())
+print "max  = "+str(times_ein.max())
+print "mean = "+str(times_ein.mean())
+print "\nsp.dot(): "
+print "min  = "+str(times_spdot.min())
+print "max  = "+str(times_spdot.max())
+print "mean = "+str(times_spdot.mean())
+print "\nsp.outer(): "
+print "min  = "+str(times_spouter.min())
+print "max  = "+str(times_spouter.max())
+print "mean = "+str(times_spouter.mean())
+print "\nzgeru(): "
+print "min  = "+str(times_zgeru.min())
+print "max  = "+str(times_zgeru.max())
+print "mean = "+str(times_zgeru.mean())
