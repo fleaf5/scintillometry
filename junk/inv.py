@@ -46,6 +46,8 @@ for i in indices:
     end_ztrtri = time.time()
     times_ztrtri[i] = end_ztrtri - start_ztrtri
 
+print C[0]
+
 print "inv():"
 print "min  = "+str(times_inv.min())
 print "max  = "+str(times_inv.max())

@@ -129,7 +129,9 @@ class ToeplitzFactorizor:
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             
             ## TIME LOOPS (REMOVE)
+            self.comm.Barrier()
             if self.rank == 0:
+                self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -174,6 +176,13 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
+            
+            # TIME LOOPS (REMOVE)
+            self.comm.Barrier()
+            if self.rank == 0:
+                self.end_time = MPI.Wtime()
+                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
+
 
     ## Private Methods
     
@@ -311,7 +320,7 @@ class ToeplitzFactorizor:
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
         return
     
-    def __new_block_update(self, X2, sb1, eb1, u1, e1,s2, sb2, eb2, u2, e2, S, m, p_eff):
+    def __new_block_update(self, X2, sb1, eb1, u1, e1, s2, sb2, eb2, u2, e2, S, m, p_eff):
         for b in self.blocks:
             num = self.numOfBlocks
             invT = S
@@ -332,7 +341,10 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
+                start_inv2 = MPI.Wtime()
                 M = M.dot(inv(invT[:p_eff,:p_eff])) # Invert an upper triangular matrix.
+                end_inv2 = MPI.Wtime()
+                print "Loop "+str(s2)+" inv2: "+str(end_inv2-start_inv2)
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -376,7 +388,11 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
+                
+                start_inv3 = MPI.Wtime()
                 M = M.dot(inv(invT[:p_eff,:p_eff])) # invert an upper triangular matrix
+                end_inv3 = MPI.Wtime()
+                print "Loop "+str(s2)+" inv3: "+str(end_inv3-start_inv3)
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M

@@ -1,5 +1,6 @@
 import numpy as np
 #import scipy as sp
+from scipy.linalg.lapack import ztrtri
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -199,7 +200,6 @@ class ToeplitzFactorizor:
         if self.blocks.hasRank(0):
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c.T)
-            print c
             cinv = inv(c)
         else:
             cinv = np.empty((m,m),complex)
@@ -342,7 +342,10 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # Invert an upper triangular matrix.
+                start_inv2 = MPI.Wtime()
+                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # Invert an upper triangular matrix.
+                end_inv2 = MPI.Wtime()
+                print "Loop "+str(s2)+" inv2: "+str(end_inv2-start_inv2)
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -386,7 +389,11 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # invert an upper triangular matrix
+                
+                start_inv3 = MPI.Wtime()
+                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # invert an upper triangular matrix
+                end_inv3 = MPI.Wtime()
+                print "Loop "+str(s2)+" inv3: "+str(end_inv3-start_inv3)
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
