@@ -88,4 +88,3 @@ print "Time per multiplication sp.outer(): "+str((end_spouter-start_spouter)/N)
 print "Time per multiplication zgeru() : "+str((end_zgeru-start_zgeru)/N)
 #print "Time per multiplication man1    : "+str((end_man1-start_man1)/N)
 #print "Time per multiplication man2    : "+str((end_man2-start_man2)/N)
-

@@ -7,7 +7,7 @@
 import sys
 import numpy as np
 from numpy.linalg import inv
-#from scipy.linalg.lapack import ztrtri
+from scipy.linalg.lapack import ztrtri
 import time
 
 # Initialize matrices.
@@ -37,11 +37,11 @@ for i in indices:
 end_inv = time.time()
 
 ## Time scipy.linalg.lapack.ztrtri()
-#start_ztrtri = time.time()
-#for i in indices:
-#    C = ztrtri(A)
-#end_ztrtri = time.time()
+start_ztrtri = time.time()
+for i in indices:
+    C = ztrtri(A)
+end_ztrtri = time.time()
 
 
 print "Time inv()   : "+str((end_inv-start_inv)/N)
-#print "Time ztrtri(): "+str((end_ztrtri-start_ztrtri)/N)
+print "Time ztrtri(): "+str((end_ztrtri-start_ztrtri)/N)
