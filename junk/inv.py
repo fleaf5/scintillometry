@@ -31,17 +31,26 @@ C = np.empty((n,n),complex) # initialize inverse.
 indices=range(N) # list to loop over.
 
 ## Time numpy.linalg.inv()
-start_inv = time.time()
+times_inv = np.empty(N)
 for i in indices:
+    start_inv = time.time()
     C = inv(A)
-end_inv = time.time()
+    end_inv = time.time()
+    times_inv[i] = end_inv - start_inv
 
 ## Time scipy.linalg.lapack.ztrtri()
-start_ztrtri = time.time()
+times_ztrtri = np.empty(N)
 for i in indices:
+    start_ztrtri = time.time()
     C = ztrtri(A)
-end_ztrtri = time.time()
+    end_ztrtri = time.time()
+    times_ztrtri[i] = end_ztrtri - start_ztrtri
 
-
-print "Time inv()   : "+str((end_inv-start_inv)/N)
-print "Time ztrtri(): "+str((end_ztrtri-start_ztrtri)/N)
+print "inv():"
+print "min  = "+str(times_inv.min())
+print "max  = "+str(times_inv.max())
+print "mean = "+str(times_inv.mean())
+print "ztrtri():"
+print "min  = "+str(times_ztrtri.min())
+print "max  = "+str(times_ztrtri.max())
+print "mean = "+str(times_ztrtri.mean())
