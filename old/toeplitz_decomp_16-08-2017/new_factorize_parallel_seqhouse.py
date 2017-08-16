@@ -1,5 +1,5 @@
 import numpy as np
-#import scipy as sp
+#import scipy as sp # Doesn't appear to be used. Commenting out doesn't affect computation time.
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -14,6 +14,8 @@ from GeneratorBlocks import Blocks
 from GeneratorBlock import Block
 
 from time import time
+
+import cProfile
 
 MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
@@ -130,6 +132,7 @@ class ToeplitzFactorizor:
             
             ## TIME LOOPS (REMOVE)
             if self.rank == 0:
+                self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -174,6 +177,11 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
+            
+            if self.rank == 0:
+                self.end_time = MPI.Wtime()
+                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
+
 
     ## Private Methods
     
@@ -260,14 +268,40 @@ class ToeplitzFactorizor:
                 # Compute X2 and beta for jth Householder vector
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
-                data= self.__house_vec(j1, s2, j, b)
+                
+                self.comm.Barrier()
+                if (self.rank == k or self.rank == 0) and (k<4) and (j<4):
+                    self.profileName = "house_n"+str(self.n)+"_m"+str(self.m/2)+"_p"+str(p)+"_k"+str(k)+"_sb1"+str(sb1)+"_j"+str(j)+"_rank"+str(self.rank)
+#                    cProfile.run('data=self.__house_vec(j1, s2, j, b)', self.profileName)
+#                    cProfile.runctx('data=self.__house_vec(j1, s2, j, b)', globals(), locals(), filename=self.profileName)
+#                    cProfile.runcall('data=self.__house_vec(j1, s2, j, b)',filename=self.profileName)
+                    pr = cProfile.Profile()
+                    pr.enable()
+                    data= self.__house_vec(j1, s2, j, b)
+                    pr.disable()
+                    pr.dump_stats(self.profileName)
+                else:
+                    data= self.__house_vec(j1, s2, j, b)
   
                 temp[j] = data
                 X2 = data[:self.m]
                 beta = data[-1]
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
-                self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
+                
+                self.comm.Barrier()
+                if (self.rank == k or self.rank == 0) and (k<4) and (j<4):
+                    self.profileName = "seq_n"+str(self.n)+"_m"+str(self.m/2)+"_p"+str(p)+"_k"+str(k)+"_sb1"+str(sb1)+"_j"+str(j)+"_rank"+str(self.rank)
+#                    cProfile.run('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', self.profilename)
+#                    cProfile.runctx('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', globals(), locals(), filename=self.profileName)
+#                    cProfile.runcall('self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)', filename=self.profilename)
+                    pr = cProfile.Profile()
+                    pr.enable()
+                    self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
+                    pr.disable()
+                    pr.dump_stats(self.profileName)
+                else:
+                    self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
 
             XX2 = temp[:,:m]
             if b.rank == s2 or b.rank == 0:
@@ -308,6 +342,8 @@ class ToeplitzFactorizor:
                 S = np.zeros((p, p), complex)
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
             self.__set_curr_gen(s2, n) # Updates work
+            
+            self.comm.Barrier()
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
         return
     
@@ -332,7 +368,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # Invert an upper triangular matrix.
+                M = M.dot(inv(invT[:p_eff,:p_eff]))
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -363,7 +399,7 @@ class ToeplitzFactorizor:
                 
                 del A2
                 
-            for b in self.blocks: # ranks 1, ..., min(n-1, 2n-1-k) receive from and send to (rank+k)
+            for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from and send to (rank+k)
                 if b.work1 == None: 
                     continue
                 s = 0
@@ -376,8 +412,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # invert an upper triangular matrix
-                
+                M = M.dot(inv(invT[:p_eff,:p_eff]))
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
@@ -392,7 +427,9 @@ class ToeplitzFactorizor:
                 
                 A2 = b.getA2()
                 A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                del A2 
+                del A2
+            
+            self.comm.Barrier()
             return 
         
         
@@ -435,7 +472,9 @@ class ToeplitzFactorizor:
         for b in self.blocks: # rank s2=k sends to rank 0.
             if b.work2 == None: 
                 continue
-            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j.
+            
+            B1 = b.getA2().dot(np.conj(X2.T)) # size
+#            print str(b.getA2().shape)+str(np.conj(X2.T).shape)
             
             start = 0
             end = m
@@ -443,7 +482,9 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m:
                 end = e2 % m or m
-            B1 = B1[start:end] # size decreases with j.
+            B1 = B1[start:end]
+            
+#            print str(end-start)
             self.comm.Send(B1, dest=b.getWork2()%self.size, tag=4*num + b.getWork2())
 
         
@@ -456,15 +497,15 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e1/m:
                 end = e1 % m or m
-            B1 = np.empty(end-start, complex) # size decreases with j.
+            B1 = np.empty(end-start, complex)
             
             self.comm.Recv(B1, source=b.getWork1()%self.size, tag=4*num + b.rank)
             A1 = b.getA1()
-            B2 = A1[start:end, j] # size decreases with j.
+            B2 = A1[start:end, j]
                 
-            v = B2 - B1 # size decreases with j.
+            v = B2 - B1
             self.comm.Send(v, (b.getWork1())%self.size, 5*num + b.getWork1())
-            A1[start:end,j] -= beta*v # size decreases with j.
+            A1[start:end,j] -= beta*v
             del A1
 
         for b in self.blocks:# rank s2=k receives from rank 0.
@@ -476,11 +517,13 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m :
                 end = e2 % m or m
-            v = np.empty(end-start,complex) # size decreases with j.
+            v = np.empty(end-start,complex)
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
-            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))# size of v decreases with j.
+            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))
             del A2
+            
+        self.comm.Barrier()
         
     def __house_vec(self, j, s2, j_count, b):
         isZero = np.array([0])
@@ -508,6 +551,7 @@ class ToeplitzFactorizor:
             data[:self.m] = X2
             data[-1] = beta[0] 
             b.setTemp(data)
+            self.comm.Barrier()
             return data
         
         if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
@@ -545,5 +589,6 @@ class ToeplitzFactorizor:
             self.comm.Recv(data, source=s2%self.size, tag=5*num + s2)
             del A1
 
+        self.comm.Barrier()
         return data # X2, beta
 

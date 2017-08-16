@@ -1,5 +1,5 @@
 import numpy as np
-#import scipy as sp
+#import scipy as sp # Doesn't appear to be used. Commenting out doesn't affect computation time.
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -130,6 +130,7 @@ class ToeplitzFactorizor:
             
             ## TIME LOOPS (REMOVE)
             if self.rank == 0:
+                self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -174,6 +175,11 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
+            
+            if self.rank == 0:
+                self.end_time = MPI.Wtime()
+                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
+
 
     ## Private Methods
     
@@ -363,7 +369,7 @@ class ToeplitzFactorizor:
                 
                 del A2
                 
-            for b in self.blocks: # ranks 1, ..., min(n-1, 2n-1-k) receive from and send to (rank+k)
+            for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from and send to (rank+k)
                 if b.work1 == None: 
                     continue
                 s = 0

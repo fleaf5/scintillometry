@@ -130,6 +130,7 @@ class ToeplitzFactorizor:
             
             ## TIME LOOPS (REMOVE)
             if self.rank == 0:
+                self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -174,6 +175,11 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
+            
+            if self.rank == 0:
+                self.end_time = MPI.Wtime()
+                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
+
 
     ## Private Methods
     
