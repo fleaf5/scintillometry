@@ -79,17 +79,17 @@ class ToeplitzFactorizor:
         b = Block(rank)
         k = self.kCheckpoint
         if k!= 0:
-            A1 = np.load("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, rank))
-            A2 = np.load("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, rank))
+            A1 = np.asfortranarray(np.load("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, rank)))
+            A2 = np.asfortranarray(np.load("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, rank)))
             b.setA1(A1) # Assigns A1 for current instance of Block
             b.setA2(A2) # Assigns A2 for current instance of Block
         else:
             if rank >= self.n:
                 m = self.m
-                b.createA(np.zeros((m,m), complex)) # Assigns A1 and A2 for current instance of Block.
+                b.createA(np.asfortranarray(np.zeros((m,m), complex))) # Assigns A1 and A2 for current instance of Block.
                 
             else:
-                T = np.load("processedData/{0}/{1}.npy".format(folder,rank))
+                T = np.asfortranarray(np.load("processedData/{0}/{1}.npy".format(folder,rank)))
                 b.setT(T) # Assigns T for current instance of Block.
         b.setName("results/{0}_uc.npy".format(folder))
         self.blocks.addBlock(b)     
@@ -193,17 +193,18 @@ class ToeplitzFactorizor:
         n = self.n
         m = self.m
         pad = self.pad
-        A1 = np.zeros((m, m),complex)
-        A2 = np.zeros((m, m), complex)
+        A1 = np.asfortranarray(np.zeros((m, m),complex))
+        A2 = np.asfortranarray(np.zeros((m, m), complex))
         cinv = None
         
         # The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0):
-            c = cholesky(self.blocks.getBlock(0).getT())
+            c = np.asfortranarray(cholesky(self.blocks.getBlock(0).getT()))
             c = np.conj(c.T)
             cinv = inv(c)
         else:
             cinv = np.empty((m,m),complex)
+        cinv = np.asfortranarray(cinv)
             
         self.comm.Bcast(cinv, root=0)
 
@@ -241,7 +242,7 @@ class ToeplitzFactorizor:
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
         n = self.n
        
-        X2_list = np.zeros((m, m+1), complex)
+        X2_list = np.asfortranarray(np.zeros((m, m+1), complex))
         for sb1 in range (0, m, p):
             
             for b in self.blocks:
@@ -256,11 +257,11 @@ class ToeplitzFactorizor:
             u2 = eb2
             p_eff = min(p, m - sb1)
             
-            temp =  np.zeros((p_eff, m+1), complex)
+            temp =  np.asfortranarray(np.zeros((p_eff, m+1), complex))
             if method == WY1 or method == WY2:
-                S = np.array([np.zeros((m,p)),np.zeros((m,p))], complex)
+                S = np.asfortranarray([np.zeros((m,p)),np.zeros((m,p))], complex)
             elif method == YTY1 or YTY2:
-                S = np.zeros((p, p), complex)
+                S = np.asfortranarray(np.zeros((p, p), complex))
             
             
             for j in range(0, p_eff):
@@ -272,22 +273,33 @@ class ToeplitzFactorizor:
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 data= self.__house_vec(j1, s2, j, b)
-  
+                data = np.asfortranarray(data)
+                
                 temp[j] = data
+                temp[j] = np.asfortranarray(temp[j])
+                
                 X2 = data[:self.m]
+                X2 = np.asfortranarray(X2)
+                
                 beta = data[-1]
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 self.__seq_update(X2, beta, eb1, eb2, s2, j1, m, n)
 
             XX2 = temp[:,:m]
+            XX2 = np.asfortranarray(XX2)
+            
             if b.rank == s2 or b.rank == 0:
                 S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
+                S = np.asfortranarray(S)
+                
                 self.__set_curr_gen(s2, n) # Updates work1, work2.
                 
                 # The following function involves the passing of messages between rank=0 and rank=s2=k (both directions).
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
+                
             X2_list[sb1:sb1+p_eff,:] = temp
+            X2_list = np.asfortranarray(X2_list)
         
         b.createTemp(np.zeros((m, m+1), complex))
         b.setTemp(X2_list)
@@ -298,6 +310,8 @@ class ToeplitzFactorizor:
             self.comm.Bcast(b.getTemp(), root=s2)
             
         temp = b.getTemp()
+        temp = np.asfortranarray(temp)
+        
         for sb1 in range (0, m, p):
             
             for b in self.blocks:
@@ -313,11 +327,18 @@ class ToeplitzFactorizor:
             p_eff = min(p, m - sb1)
             
             temp2 = temp[sb1:sb1+p_eff,:]
+            temp2 = np.asfortranarray(temp2)
+            
             XX2 = temp2[:,:m]
+            XX2 = np.asfortranarray(XX2)
+            
             beta = temp2[-1,-1]
             if method == YTY1 or YTY2:
                 S = np.zeros((p, p), complex)
+                S = np.asfortranarray(S)
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
+            S = np.asfortranarray(S)
+            
             self.__set_curr_gen(s2, n) # Updates work
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
         return
