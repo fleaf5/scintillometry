@@ -1,5 +1,7 @@
 import numpy as np
 #import scipy as sp
+from scipy.linalg.lapack import ztrtri
+from scipy.linalg.blas import zgeru
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -342,7 +344,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # Invert an upper triangular matrix.
+                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # Invert an upper triangular matrix.
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -386,7 +388,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = M.dot(inv(invT[:p_eff,:p_eff])) # invert an upper triangular matrix
+                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # invert an upper triangular matrix
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -486,10 +488,12 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m :
                 end = e2 % m or m
+            if start == end:
+                continue
             v = np.empty(end-start,complex) # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
-            A2[start:end,:] -= beta*v[np.newaxis].T.dot(np.array([X2[:]]))# size of v decreases with j.
+            A2[start:end,:] = zgeru(-beta, v, X2, incx=1, incy=1, a=A2[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
             del A2
         
     def __house_vec(self, j, s2, j_count, b):
