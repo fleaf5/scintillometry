@@ -498,7 +498,30 @@ class ToeplitzFactorizor:
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
 #            print "Fortran-order (zgeru)   : "+str(A2.flags['F_CONTIGUOUS'])
-            print "v: "+str(v.shape)+"X2: "+str(X2.shape)
+            if j == 2:
+                print "beta: "
+                print "   type         : "+str(type(beta))
+                print "   shape        : "+str(beta.shape)
+                print "   Fortran-order: "+str(beta.flags['F_CONTIGUOUS'])
+                print "   C-order      : "+str(beta.flags['C_CONTIGUOUS'])
+            
+                print "v: "
+                print "   type : "+str(type(v))
+                print "   shape: "+str(v.shape)
+                print "   Fortran-order: "+str(v.flags['F_CONTIGUOUS'])
+                print "   C-order      : "+str(v.flags['C_CONTIGUOUS'])
+                
+                print "X2: "
+                print "   type : "+str(type(X2))
+                print "   shape: "+str(X2.shape)
+                print "   Fortran-order: "+str(X2.flags['F_CONTIGUOUS'])
+                print "   C-order      : "+str(X2.flags['C_CONTIGUOUS'])
+                
+                print "A2[start:end,:]: "
+                print "   type   : "+str(type(A2[start:end,:]))
+                print "   shape  : "+str(A2[start:end,:].shape)
+                print "   Fortran-order: "+str(A2[start:end,:].flags['F_CONTIGUOUS'])
+                print "   C-order      : "+str(A2[start:end,:].flags['C_CONTIGUOUS'])
             start_zgeru = MPI.Wtime()
             A2[start:end,:] = zgeru(-beta, v, X2, incx=1, incy=1, a=A2[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
             end_zgeru = MPI.Wtime()

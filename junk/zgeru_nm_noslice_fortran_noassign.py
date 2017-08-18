@@ -68,12 +68,13 @@ for i in indices:
 #print "B: "+str(type(B))+str(B.shape)
 
 times_zgeru = np.empty(N)
+D = np.asfortranarray(D)
 for i in indices:
     start_zgeru = time.time()
-    D[:,:] = zgeru(alpha, A, B, incx=1, incy=1, a=np.array(D[:,:]), overwrite_x=0, overwrite_y=0, overwrite_a=1)
+    zgeru(alpha, A, B, incx=1, incy=1, a=D, overwrite_x=0, overwrite_y=0, overwrite_a=1)
     end_zgeru = time.time()
     times_zgeru[i] = end_zgeru - start_zgeru
-
+    
 print "\nSuccess: "+str(np.allclose(C,D))
 
 print "\nnp.dot(): "
