@@ -35,9 +35,9 @@ del C_real
 del C_imaginary
 
 np.random.seed(46)
-D_real = np.random.rand(n,m)-0.5
+D_real = np.random.rand(n+10,m)-0.5
 np.random.seed(47)
-D_imaginary = np.random.rand(n,m)-0.5
+D_imaginary = np.random.rand(n+10,m)-0.5
 D = D_real+1.0j*D_imaginary
 del D_real
 del D_imaginary
@@ -62,15 +62,22 @@ for i in indices:
     end_dot = time.time()
     times_dot[i] = end_dot - start_dot
 
+start = 4
+end = 4+n
+
+testval = D[4,0]
+
 times_zgeru = np.empty(N)
 D = np.asfortranarray(D)
 for i in indices:
     start_zgeru = time.time()
-    D = zgeru(alpha, A, B, incx=1, incy=1, a=D, overwrite_x=0, overwrite_y=0, overwrite_a=1)
+    zgeru(alpha, A, B, incx=1, incy=1, a=D[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)
     end_zgeru = time.time()
     times_zgeru[i] = end_zgeru - start_zgeru
 
-print "\nSuccess: "+str(np.allclose(C,D))
+print "\nD[4,0]: "+str(testval)+", "+str(D[4,0])
+    
+#print "\nSuccess: "+str(np.allclose(C,D))
 
 print "\nnp.dot(): "
 print "min  = "+str(times_dot.min())

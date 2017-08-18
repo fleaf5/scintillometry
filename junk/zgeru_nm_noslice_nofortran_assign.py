@@ -63,12 +63,16 @@ for i in indices:
     times_dot[i] = end_dot - start_dot
 
 times_zgeru = np.empty(N)
-D = np.asfortranarray(D)
 for i in indices:
+    print D.flags['F_CONTIGUOUS']
     start_zgeru = time.time()
     D = zgeru(alpha, A, B, incx=1, incy=1, a=D, overwrite_x=0, overwrite_y=0, overwrite_a=1)
     end_zgeru = time.time()
     times_zgeru[i] = end_zgeru - start_zgeru
+    
+
+for i in range(3):
+    print "times_zgeru["+str(i)+"]: "+str(times_zgeru[i])
 
 print "\nSuccess: "+str(np.allclose(C,D))
 
