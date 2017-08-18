@@ -498,7 +498,11 @@ class ToeplitzFactorizor:
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
 #            print "Fortran-order (zgeru)   : "+str(A2.flags['F_CONTIGUOUS'])
+            print "v: "+str(v.shape)+"X2: "+str(X2.shape)
+            start_zgeru = MPI.Wtime()
             A2[start:end,:] = zgeru(-beta, v, X2, incx=1, incy=1, a=A2[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+            end_zgeru = MPI.Wtime()
+            print "zgeru(): "+str(end_zgeru-start_zgeru)
             del A2
         
     def __house_vec(self, j, s2, j_count, b):
