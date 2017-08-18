@@ -70,8 +70,9 @@ testval = D[4,0]
 times_zgeru = np.empty(N)
 D = np.asfortranarray(D)
 for i in indices:
+    print D[start:end,:].flags['F_CONTIGUOUS']
     start_zgeru = time.time()
-    zgeru(alpha, A, B, incx=1, incy=1, a=D[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)
+    D[start:end,:] = zgeru(alpha, A, B, incx=1, incy=1, a=D[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)
     end_zgeru = time.time()
     times_zgeru[i] = end_zgeru - start_zgeru
 
