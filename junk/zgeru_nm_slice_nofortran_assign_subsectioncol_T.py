@@ -71,7 +71,7 @@ times_zgeru = np.empty(N)
 for i in indices:
     print D.T[:,start:end].flags['F_CONTIGUOUS']
     start_zgeru = time.time()
-    D.T[:,start:end] = zgeru(alpha, B, A, incx=1, incy=1, a=D.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)
+    zgeru(alpha, B, A, incx=1, incy=1, a=D.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)
     end_zgeru = time.time()
     times_zgeru[i] = end_zgeru - start_zgeru
 

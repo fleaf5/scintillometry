@@ -201,7 +201,6 @@ class ToeplitzFactorizor:
         if self.blocks.hasRank(0):
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c.T)
-            print c
             cinv = inv(c)
         else:
             cinv = np.empty((m,m),complex)
@@ -493,7 +492,7 @@ class ToeplitzFactorizor:
             v = np.empty(end-start,complex) # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             A2 = b.getA2()
-            A2[start:end,:] = zgeru(-beta, v, X2, incx=1, incy=1, a=A2[start:end,:], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+            zgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
             del A2
         
     def __house_vec(self, j, s2, j_count, b):
