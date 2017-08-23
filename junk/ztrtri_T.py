@@ -23,6 +23,11 @@ A = A_real+1.0j*A_imaginary
 
 A = np.triu(A) # convert to upper triangular form
 
+np.random.seed(42)
+B_real = np.random.rand(n,n)-0.5
+np.random.seed(43)
+B_imaginary = 1.0*np.random.rand(n,n)-0.5
+B = B_real+1.0j*B_imaginary
 
 ## Test matrix inversion
 
@@ -38,23 +43,34 @@ for i in indices:
     end_inv = time.time()
     times_inv[i] = end_inv - start_inv
 
-print C
-
 ## Time scipy.linalg.lapack.ztrtri()
 times_ztrtri = np.empty(N)
+print "Input F-contiguous: "+str(A.flags['F_CONTIGUOUS'])
 for i in indices:
     start_ztrtri = time.time()
-    C = ztrtri(A)
+    C = ztrtri(A)[0]
     end_ztrtri = time.time()
     times_ztrtri[i] = end_ztrtri - start_ztrtri
 
-print C[0]
+## Time scipy.linalg.lapack.ztrtri()
+times_ztrtri_T = np.empty(N)
+print "Input F-contiguous: "+str(A.T.flags['F_CONTIGUOUS'])
+for i in indices:
+    start_ztrtri_T = time.time()
+    C = ztrtri(A.T)[0]
+    C = C.T
+    end_ztrtri_T = time.time()
+    times_ztrtri_T[i] = end_ztrtri_T - start_ztrtri_T
 
-print "inv():"
+print "inv(A):"
 print "min  = "+str(times_inv.min())
 print "max  = "+str(times_inv.max())
 print "mean = "+str(times_inv.mean())
-print "ztrtri():"
+print "ztrtri(A):"
 print "min  = "+str(times_ztrtri.min())
 print "max  = "+str(times_ztrtri.max())
 print "mean = "+str(times_ztrtri.mean())
+print "ztrtri(A.T):"
+print "min  = "+str(times_ztrtri_T.min())
+print "max  = "+str(times_ztrtri_T.max())
+print "mean = "+str(times_ztrtri_T.mean())
