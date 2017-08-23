@@ -1,7 +1,7 @@
 import numpy as np
 #import scipy as sp
 from scipy.linalg.lapack import ztrtri
-from scipy.linalg.blas import zgeru, zherk
+from scipy.linalg.blas import zgeru, zherk, zgemm
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -354,10 +354,11 @@ class ToeplitzFactorizor:
                 M = np.empty((m - s, p_eff), complex)
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
-                A2 = b.getA2()
-                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                print "A2[s:, :m]: "+str(A2[s:, :m].flags['C_CONTIGUOUS'])
-                del A2 
+                if s != m:
+                    A2 = b.getA2()
+    #                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+                    A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T
+                    del A2 
         return 
     
     def __block_update(self, X2, sb1, eb1, u1, e1,s2, sb2, eb2, u2, e2, S, method):
@@ -403,8 +404,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 A2 = b.getA2()
-                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                print "A2[s:, :m]: "+str(A2[s:, :m].flags['C_CONTIGUOUS'])
+#                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+                A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T
                 del A2 
             return 
         
