@@ -76,15 +76,15 @@ print "\ndot():"
 print "min  = "+str(times_dot.min())
 print "max  = "+str(times_dot.max())
 print "mean = "+str(times_dot.mean())
-print "zherk(A):"
+print "\nzherk(A):"
 print "min  = "+str(times_zherk.min())
 print "max  = "+str(times_zherk.max())
 print "mean = "+str(times_zherk .mean())
-print "zsyrk(A_fortran):"
+print "\nzsyrk(A_fortran):"
 print "min  = "+str(times_zherk_fortran.min())
 print "max  = "+str(times_zherk_fortran.max())
 print "mean = "+str(times_zherk_fortran.mean())
-print "zsyrk(A_T):"
+print "\nzsyrk(A_T):"
 print "min  = "+str(times_zherk_T.min())
 print "max  = "+str(times_zherk_T.max())
 print "mean = "+str(times_zherk_T.mean())
