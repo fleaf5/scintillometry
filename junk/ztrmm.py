@@ -32,6 +32,8 @@ B = B_real+1.0j*B_imaginary
 ## Test matrix inversion
 
 C = np.empty((n,n),complex) # initialize inverse.
+D = np.empty((n,n),complex)
+E = np.empty((n,n),complex)
 
 indices=range(N) # list to loop over.
 
@@ -48,19 +50,23 @@ times_ztrtri = np.empty(N)
 print "Input F-contiguous: "+str(A.flags['F_CONTIGUOUS'])
 for i in indices:
     start_ztrtri = time.time()
-    C = ztrtri(A)[0]
+    D = ztrtri(A)[0]
     end_ztrtri = time.time()
     times_ztrtri[i] = end_ztrtri - start_ztrtri
+print D    
 
 ## Time scipy.linalg.lapack.ztrtri()
 times_ztrtri_T = np.empty(N)
 print "Input F-contiguous: "+str(A.T.flags['F_CONTIGUOUS'])
 for i in indices:
     start_ztrtri_T = time.time()
-    C = ztrtri(A.T)[0]
+    E = ztrtri(A.T)[0]
+    E = E.T
     end_ztrtri_T = time.time()
     times_ztrtri_T[i] = end_ztrtri_T - start_ztrtri_T
+print E
 
+print "All equal: "+str(bool(np.allclose(D,E)))
 print "inv(A):"
 print "min  = "+str(times_inv.min())
 print "max  = "+str(times_inv.max())
