@@ -58,7 +58,6 @@ print "Input F-contiguous: "+str(A.T.flags['F_CONTIGUOUS'])
 for i in indices:
     start_ztrtri_T = time.time()
     C = ztrtri(A.T)[0]
-    C = C.T
     end_ztrtri_T = time.time()
     times_ztrtri_T[i] = end_ztrtri_T - start_ztrtri_T
 
