@@ -40,7 +40,7 @@ C_dot = C
 
 ## Time scipy.blas.zsymm(A)
 times_zherk = np.empty(N)
-#print A.flags['F_CONTIGUOUS']
+print A.flags['F_CONTIGUOUS']
 for i in indices:
     start_zherk = time.time()
     C = zherk(alpha, A, beta=beta, c=-np.identity(n,complex), trans=0, lower=0, overwrite_c=1)
@@ -51,7 +51,7 @@ C_zherk = C
 ## Time scipy.blas.zsymm(A_fortran)
 times_zherk_fortran = np.empty(N)
 A_fortran = np.asfortranarray(A)
-#print A_fortran.flags['F_CONTIGUOUS']
+print A_fortran.flags['F_CONTIGUOUS']
 for i in indices:
     start_zherk_fortran = time.time()
     C = zherk(alpha, A_fortran, beta=beta, c=-np.identity(n,complex), trans=0, lower=0, overwrite_c=1)
@@ -59,15 +59,20 @@ for i in indices:
     times_zherk_fortran[i] = end_zherk_fortran - start_zherk_fortran
 C_zherk_fortran = C
 
-   
-#invT[:p_eff,:p_eff] = triu(X2[: p_eff, :m].dot(np.conj(X2)[: p_eff, :m].T))
-#for jj in range(p_eff):
-#    invT[jj,jj] = (invT[jj,jj] - 1.)/2.
-#return invT
+## Time scipy.blas.zsymm(A_T)
+times_zherk_T = np.empty(N)
+print A.T.flags['F_CONTIGUOUS']
+for i in indices:
+    start_zherk_T = time.time()
+    C = zherk(alpha, A.T, beta=beta, c=-np.identity(n,complex), trans=2, lower=1, overwrite_c=1)
+    C = C.T
+    end_zherk_T = time.time()
+    times_zherk_T[i] = end_zherk_T - start_zherk_T
+C_zherk_T = C
 
 
-print "Equal: "+str(bool(np.allclose(C_dot,C_zherk) and np.allclose(C_zherk, C_zherk_fortran)))
-print "dot():"
+print "Equal: "+str(bool(np.allclose(C_dot,C_zherk) and np.allclose(C_zherk, C_zherk_fortran) and np.allclose(C_zherk_fortran, C_zherk_T)))
+print "\ndot():"
 print "min  = "+str(times_dot.min())
 print "max  = "+str(times_dot.max())
 print "mean = "+str(times_dot.mean())
@@ -79,3 +84,7 @@ print "zsyrk(A_fortran):"
 print "min  = "+str(times_zherk_fortran.min())
 print "max  = "+str(times_zherk_fortran.max())
 print "mean = "+str(times_zherk_fortran.mean())
+print "zsyrk(A_T):"
+print "min  = "+str(times_zherk_T.min())
+print "max  = "+str(times_zherk_T.max())
+print "mean = "+str(times_zherk_T.mean())
