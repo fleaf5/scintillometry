@@ -343,8 +343,9 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-#                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
-                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
+                if s != m: # if M is nonempty
+#                    M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
+                    M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -355,7 +356,7 @@ class ToeplitzFactorizor:
                 M = np.empty((m - s, p_eff), complex)
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
-                if s != m:
+                if s != m: # if selection is nonempty
                     A2 = b.getA2()
 #                   A2[s:, :m] = A2[s:,:m] + M.dot(X2)
                     A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
