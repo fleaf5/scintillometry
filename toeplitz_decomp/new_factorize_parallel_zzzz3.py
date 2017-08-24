@@ -343,8 +343,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                print invT.T[:p_eff,:p_eff].flags['F_CONTIGUOUS']
-                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
+#                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
+                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -390,12 +390,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                print invT.T[:p_eff,:p_eff].flags['F_CONTIGUOUS']
-                print M.T.flags['F_CONTIGUOUS']
-                print ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].flags['F_CONTIGUOUS']
-                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T)
-#                M = zgemm(alpha, a, b[, beta, c, trans_a, trans_b, overwrite_c])
-                
+#                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T)
+                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T            
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
