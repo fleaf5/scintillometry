@@ -1,7 +1,7 @@
 import numpy as np
 #import scipy as sp
 from scipy.linalg.lapack import ztrtri
-from scipy.linalg.blas import zgeru
+from scipy.linalg.blas import zgeru, zherk, zgemm
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -49,7 +49,8 @@ class ToeplitzFactorizor:
                     file_count = len(files)
                     if file_count == 2*self.numOfBlocks:
                         kCheckpoint = k 
-                        if self.rank == 0: print ("Using Checkpoint #{0}".format(k))
+                        if self.rank == 0: 
+                            print ("Using Checkpoint #{0}".format(k))
                         break
         else:
             if self.rank == 0:
@@ -130,10 +131,7 @@ class ToeplitzFactorizor:
         #### ALGORITHM 3: STEP 3 ####
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             
-            ## TIME LOOPS (REMOVE)
-            self.comm.Barrier()
             if self.rank == 0:
-                self.start_time = MPI.Wtime()
                 print ("Loop {0}".format(k))
             
             self.k = k
@@ -178,13 +176,6 @@ class ToeplitzFactorizor:
                     A1 = np.save("processedData/{0}/checkpoint/{1}/{2}A1.npy".format(folder, k, b.rank), b.getA1())
                     A2 = np.save("processedData/{0}/checkpoint/{1}/{2}A2.npy".format(folder, k, b.rank), b.getA2())
                 exit()
-            
-            # TIME LOOPS (REMOVE)
-            self.comm.Barrier()
-            if self.rank == 0:
-                self.end_time = MPI.Wtime()
-                print "Loop "+str(k)+" time = "+str(self.end_time-self.start_time)
-
 
     ## Private Methods
     
@@ -329,7 +320,11 @@ class ToeplitzFactorizor:
             if b.rank == s2: # rank s2=k sends to rank 0.
                 s = u1
                 A2 = b.getA2()
-                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                if s != m:
+                    B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                else:
+#                    B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                    B2 = np.array([])
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 del A2
                 
@@ -343,8 +338,9 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                print "invT: "+str(invT.shape)
-                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # Invert an upper triangular matrix.
+                if s != m: # if M is nonempty
+#                    M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
+                    M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -355,9 +351,11 @@ class ToeplitzFactorizor:
                 M = np.empty((m - s, p_eff), complex)
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
-                A2 = b.getA2()
-                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                del A2 
+                if s != m: # if selection is nonempty
+                    A2 = b.getA2()
+#                   A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+                    A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+                    del A2 
         return 
     
     def __block_update(self, X2, sb1, eb1, u1, e1,s2, sb2, eb2, u2, e2, S, method):
@@ -370,7 +368,9 @@ class ToeplitzFactorizor:
                 if b.rank == s2:
                     continue
                 A2 = b.getA2()
-                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                                
+#                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 
                 del A2
@@ -388,9 +388,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                print "invT: "+str(invT.shape)
-                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # invert an upper triangular matrix
-                
+#                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T)
+                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T            
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
@@ -404,7 +403,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 A2 = b.getA2()
-                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+#                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+                A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
                 del A2 
             return 
         
@@ -426,11 +426,14 @@ class ToeplitzFactorizor:
         
     def __aggregate(self,S,  X2, beta, m, j, p_eff, method):
         invT = S
-                
-        invT[:p_eff,:p_eff] = triu(X2[: p_eff, :m].dot(np.conj(X2)[: p_eff, :m].T))
+        
+        invT[:p_eff,:p_eff] = zherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff,complex).T, trans=2, lower=1, overwrite_c=0).T
+        
         for jj in range(p_eff):
-            invT[jj,jj] = (invT[jj,jj] - 1.)/2.
+            invT[jj,jj] = (invT[jj,jj])/2.
+        
         return invT
+        
     
     def __seq_reduc(self, s1, e1, s2, e2):
         n = self.n
@@ -448,7 +451,7 @@ class ToeplitzFactorizor:
         for b in self.blocks: # rank s2=k sends to rank 0.
             if b.work2 == None: 
                 continue
-            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j.
+            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j. Can't improve with zgemv
             
             start = 0
             end = m
@@ -478,6 +481,7 @@ class ToeplitzFactorizor:
             v = B2 - B1 # size decreases with j.
             self.comm.Send(v, (b.getWork1())%self.size, 5*num + b.getWork1())
             A1[start:end,j] -= beta*v # size decreases with j.
+            
             del A1
 
         for b in self.blocks:# rank s2=k receives from rank 0.
@@ -509,7 +513,8 @@ class ToeplitzFactorizor:
         n = self.n
         num = self.numOfBlocks
         
-        if blocks.hasRank(s2):
+#        if blocks.hasRank(s2):
+        if self.rank == s2:
             A2 = blocks.getBlock(s2).getA2()
             if np.all(np.abs(A2[j, :]) < 1e-13):
                 isZero=np.array([1])
@@ -524,7 +529,8 @@ class ToeplitzFactorizor:
             b.setTemp(data)
             return data
         
-        if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
+#        if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
+        if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
             sigma = A2[j, :].dot(np.conj(A2[j,:]))
             
@@ -542,7 +548,8 @@ class ToeplitzFactorizor:
             self.comm.Send(data, dest=0, tag=5*num + s2)
             del A2
             
-        if blocks.hasRank(0): # rank 0 receives from and sends to rank s2=k
+#        if blocks.hasRank(0): # rank 0 receives from and sends to rank s2=k
+        if self.rank == 0: # rank 0 receives from and sends to rank s2=k
             A1 = blocks.getBlock(0).getA1()
             self.comm.Recv(sigma, source=s2%self.size, tag=2*num + s2)
             alpha = (A1[j,j]**2 - sigma)**0.5
