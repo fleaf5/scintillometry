@@ -329,9 +329,11 @@ class ToeplitzFactorizor:
             if b.rank == s2: # rank s2=k sends to rank 0.
                 s = u1
                 A2 = b.getA2()
-                print A2[s:, :m].T.flags['F_CONTIGUOUS']
-                print X2[:p_eff, :m].T.flags['F_CONTIGUOUS']
-                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                if s != m:
+                    B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                else:
+#                    B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                    B2 = np.array([])
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 del A2
                 
@@ -375,9 +377,9 @@ class ToeplitzFactorizor:
                 if b.rank == s2:
                     continue
                 A2 = b.getA2()
-                print A2[s:, :m].T.flags['F_CONTIGUOUS']
-                print X2[:p_eff, :m].T.flags['F_CONTIGUOUS']
-                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
+                B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                                
+#                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 
                 del A2
