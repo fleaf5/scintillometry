@@ -356,7 +356,11 @@ class ToeplitzFactorizor:
                 
                 if s != m:
                     A2 = b.getA2()
-    #                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+#                   A2[s:, :m] = A2[s:,:m] + M.dot(X2)
+                    print A2.T[:m, s:].flags['F_CONTIGUOUS']
+                    print str(A2.shape)+str(A2[s:, :m].shape)
+                    print X2.T.flags['F_CONTIGUOUS']
+                    print M.T.flags['F_CONTIGUOUS']
                     A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T
                     del A2 
         return 
