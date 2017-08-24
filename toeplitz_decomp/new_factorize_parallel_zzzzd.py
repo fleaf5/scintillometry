@@ -1,7 +1,7 @@
 import numpy as np
 #import scipy as sp
 from scipy.linalg.lapack import ztrtri
-from scipy.linalg.blas import zgeru, zherk, zgemm
+from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
 from numpy.linalg import cholesky, inv
 from numpy import triu
 import os,sys,inspect
@@ -532,7 +532,8 @@ class ToeplitzFactorizor:
 #        if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
         if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
-            sigma = A2[j, :].dot(np.conj(A2[j,:]))
+#            sigma = A2[j, :].dot(np.conj(A2[j,:]))
+            sigma[0] = dznrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
             

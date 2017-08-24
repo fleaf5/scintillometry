@@ -1,7 +1,7 @@
 import os,sys
 from mpi4py import MPI
 import numpy as np
-from new_factorize_parallel_debug_zdotc import ToeplitzFactorizor
+from new_factorize_parallel_zzzzd import ToeplitzFactorizor
 from time import time
 
 
