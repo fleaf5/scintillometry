@@ -343,8 +343,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
-                print 
-                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # Invert an upper triangular matrix.
+                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -390,7 +389,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = M.dot(ztrtri(invT[:p_eff,:p_eff])[0]) # invert an upper triangular matrix
+                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T)
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M

@@ -55,7 +55,30 @@ for i in indices:
 C_zgemm = C
 C = C_real+1.0j*C_imaginary
 
-print "Equal: "+str(bool(np.allclose(C_dot,C_zgemm)))
+times_zgemm_T = np.empty(N)
+for i in indices:
+    start_zgemm_T = time.time()
+    C = C.T
+    C[:,start:end] = zgemm(alpha=1.0, a=B.T, b=A.T, beta=1.0, c=C[:,start:end])
+    C = C.T
+    end_zgemm_T = time.time()
+    times_zgemm_T[i] = end_zgemm_T - start_zgemm_T
+C_zgemm_T = C
+C = C_real+1.0j*C_imaginary
+
+times_zgemm_noT = np.empty(N)
+for i in indices:
+    start_zgemm_noT = time.time()
+    C[start:end,:] = zgemm(alpha = 1.0, a = A, b = B, beta = 1.0, c = C[start:end,:])
+    end_zgemm_noT = time.time()
+    times_zgemm_noT[i] = end_zgemm - start_zgemm
+C_zgemm_noT = C
+
+print A.T.flags['F_CONTIGUOUS']
+print B.T.flags['F_CONTIGUOUS']
+print C.T.flags['F_CONTIGUOUS']
+
+print "Equal: "+str(bool(np.allclose(C_dot,C_zgemm) and np.allclose(C_dot,C_zgemm_T) and np.allclose(C_zgemm_T,C_zgemm_noT)))
 print "\ndot():"
 print "min  = "+str(times_dot.min())
 print "max  = "+str(times_dot.max())
@@ -64,3 +87,11 @@ print "\nzgemm(A):"
 print "min  = "+str(times_zgemm.min())
 print "max  = "+str(times_zgemm.max())
 print "mean = "+str(times_zgemm.mean())
+print "\nzgemm_T(A):"
+print "min  = "+str(times_zgemm_T.min())
+print "max  = "+str(times_zgemm_T.max())
+print "mean = "+str(times_zgemm_T.mean())
+print "\nzgemm(A_noT):"
+print "min  = "+str(times_zgemm_noT.min())
+print "max  = "+str(times_zgemm_noT.max())
+print "mean = "+str(times_zgemm_noT.mean())

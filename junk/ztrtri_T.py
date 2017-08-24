@@ -9,6 +9,7 @@ import numpy as np
 from numpy.linalg import inv
 from scipy.linalg.lapack import ztrtri
 import time
+from copy import deepcopy
 
 # Initialize matrices.
 n = int(sys.argv[1]) # Size of matrix (nxn)
@@ -42,6 +43,7 @@ for i in indices:
     C = inv(A)
     end_inv = time.time()
     times_inv[i] = end_inv - start_inv
+C_inv = deepcopy(C)
 
 ## Time scipy.linalg.lapack.ztrtri()
 times_ztrtri = np.empty(N)
@@ -51,16 +53,19 @@ for i in indices:
     C = ztrtri(A)[0]
     end_ztrtri = time.time()
     times_ztrtri[i] = end_ztrtri - start_ztrtri
+C_ztrtri = deepcopy(C)
 
 ## Time scipy.linalg.lapack.ztrtri()
 times_ztrtri_T = np.empty(N)
 print "Input F-contiguous: "+str(A.T.flags['F_CONTIGUOUS'])
 for i in indices:
     start_ztrtri_T = time.time()
-    C = ztrtri(A.T)[0]
+    C = ztrtri(A.T,lower=1)[0].T
     end_ztrtri_T = time.time()
     times_ztrtri_T[i] = end_ztrtri_T - start_ztrtri_T
+C_ztrtri_T = deepcopy(C)
 
+print "Equal: "+str(bool(np.allclose(C_inv,C_ztrtri) and np.allclose(C_ztrtri,C_ztrtri_T)))
 print "inv(A):"
 print "min  = "+str(times_inv.min())
 print "max  = "+str(times_inv.max())
