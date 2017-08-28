@@ -1,11 +1,11 @@
 #!/bin/sh
-# @ job_name           = test_m_newtoeplitz
+# @ job_name           = toeplitz
 # @ job_type           = bluegene
-# @ comment            = "n=4, m=8, zero-padded"
+# @ comment            = "n=512, m=512, p=1024, zero-padded"
 # @ error              = $(job_name).$(Host).$(jobid).err
 # @ output             = $(job_name).$(Host).$(jobid).out
 # @ bg_size            = 64
-# @ wall_clock_limit   = 0:30:00
+# @ wall_clock_limit   = 4:00:00
 # @ bg_connectivity    = Torus
 # @ queue 
 
