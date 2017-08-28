@@ -1,7 +1,7 @@
 import numpy as np
 #import scipy as sp
-from scipy.linalg.lapack import ztrtri
-from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
+from scipy.linalg.lapack import ctrtri
+from scipy.linalg.blas import cgeru, cherk, cgemm, scnrm2
 from numpy.linalg import cholesky, inv
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -65,7 +65,7 @@ class ToeplitzFactorizor:
         # Initialize and save array which stores the final Cholesky factor.
         if self.rank==0:
             if not os.path.exists("results/{0}".format(folder + "_uc.npy")):
-                uc = np.zeros((m*n,1), dtype=complex)
+                uc = np.zeros((m*n,1), dtype='complex64')
                 np.save("results/{0}".format(folder + "_uc.npy"), uc)
                 
         # Ensure that files and directories are created before the rest of the nodes continue.
@@ -86,8 +86,7 @@ class ToeplitzFactorizor:
         else:
             if rank >= self.n:
                 m = self.m
-                b.createA(np.zeros((m,m), complex)) # Assigns A1 and A2 for current instance of Block.
-                
+                b.createA(np.zeros((m,m), dtype='complex64')) # Assigns A1 and A2 for current instance of Block.
             else:
                 T = np.load("processedData/{0}/{1}.npy".format(folder,rank))
                 b.setT(T) # Assigns T for current instance of Block.
@@ -197,8 +196,8 @@ class ToeplitzFactorizor:
         n = self.n
         m = self.m
         pad = self.pad
-        A1 = np.zeros((m, m),complex)
-        A2 = np.zeros((m, m), complex)
+        A1 = np.zeros((m, m), dtype='complex64')
+        A2 = np.zeros((m, m), dtype='complex64')
         cinv = None
         
         # The root rank will compute the cholesky decomposition
@@ -207,8 +206,8 @@ class ToeplitzFactorizor:
             c = np.conj(c.T)
             cinv = inv(c)
         else:
-            cinv = np.empty((m,m),complex)
-            
+            cinv = np.empty((m,m), dtype='complex64')
+        
         self.comm.Bcast(cinv, root=0)
 
         for b in self.blocks:
@@ -245,7 +244,7 @@ class ToeplitzFactorizor:
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
         n = self.n
        
-        X2_list = np.zeros((m, m+1), complex)
+        X2_list = np.zeros((m, m+1), dtype='complex64')
         for sb1 in range (0, m, p):
             
             for b in self.blocks:
@@ -260,12 +259,11 @@ class ToeplitzFactorizor:
             u2 = eb2
             p_eff = min(p, m - sb1)
             
-            temp =  np.zeros((p_eff, m+1), complex)
+            temp =  np.zeros((p_eff, m+1), dtype='complex64')
             if method == WY1 or method == WY2:
-                S = np.array([np.zeros((m,p)),np.zeros((m,p))], complex)
+                S = np.array([np.zeros((m,p)),np.zeros((m,p))], dtype='complex64')
             elif method == YTY1 or YTY2:
-                S = np.zeros((p, p), complex)
-            
+                S = np.zeros((p, p), dtype='complex64')
             
             for j in range(0, p_eff):
                 j1 = sb1 + j
@@ -293,7 +291,7 @@ class ToeplitzFactorizor:
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
             X2_list[sb1:sb1+p_eff,:] = temp
         
-        b.createTemp(np.zeros((m, m+1), complex))
+        b.createTemp(np.zeros((m, m+1), dtype='complex64'))
         b.setTemp(X2_list)
         
         if b.getCond()[0]:
@@ -320,7 +318,7 @@ class ToeplitzFactorizor:
             XX2 = temp2[:,:m]
             beta = temp2[-1,-1]
             if method == YTY1 or YTY2:
-                S = np.zeros((p, p), complex)
+                S = np.zeros((p, p), dtype='complex64')
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
             self.__set_curr_gen(s2, n) # Updates work
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
@@ -334,10 +332,10 @@ class ToeplitzFactorizor:
                 s = u1
                 A2 = b.getA2()
                 if s != m:
-                    B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 else:
 #                    B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
-                    B2 = np.array([])
+                    B2 = np.array([],dtype='complex64')
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 del A2
                 
@@ -347,13 +345,13 @@ class ToeplitzFactorizor:
                 A1 = b.getA1()
                 B1 = A1[s:, sb1:eb1]
                 
-                B2 = np.empty((m - s, p_eff), complex)
+                B2 = np.empty((m - s, p_eff), dtype='complex64')
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
 #                    M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T) # Invert an upper triangular matrix.
-                    M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
+                    M = cgemm(alpha=1.0, a=ctrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -361,13 +359,13 @@ class ToeplitzFactorizor:
     
             if b.rank == s2: # rank s2=k receives from rank 0.
                 s = u1
-                M = np.empty((m - s, p_eff), complex)
+                M = np.empty((m - s, p_eff), dtype='complex64')
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 if s != m: # if selection is nonempty
                     A2 = b.getA2()
 #                   A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                    A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
                     del A2 
         return 
     
@@ -381,8 +379,7 @@ class ToeplitzFactorizor:
                 if b.rank == s2:
                     continue
                 A2 = b.getA2()
-                B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
-                                
+                B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
 #                B2 = A2[s:, :m].dot(np.conj(X2[:p_eff, :m]).T)
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 
@@ -397,27 +394,28 @@ class ToeplitzFactorizor:
                 
                 A1 = b.getA1()
                 B1 = A1[s:, sb1:eb1]
-                B2 = np.empty((m - s, p_eff), complex)
+                B2 = np.empty((m - s, p_eff), dtype='complex64')
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
 #                M = M.dot(ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0].T)
-                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T            
+                M = cgemm(alpha=1.0, a=ctrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T            
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
-                del A1   
+                del A1
+                
             for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from (rank-k)
                 if b.work2 == None: 
                     continue
                 s = 0 
                 if b.rank == s2:
                     continue
-                M = np.empty((m - s, p_eff), complex)
+                M = np.empty((m - s, p_eff), dtype='complex64')
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 A2 = b.getA2()
 #                A2[s:, :m] = A2[s:,:m] + M.dot(X2)
-                A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+                A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
                 del A2 
             return 
         
@@ -440,8 +438,7 @@ class ToeplitzFactorizor:
     def __aggregate(self,S,  X2, beta, m, j, p_eff, method):
         invT = S
         
-        invT[:p_eff,:p_eff] = zherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff,complex).T, trans=2, lower=1, overwrite_c=0).T
-        
+        invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, dtype='complex64').T, trans=2, lower=1, overwrite_c=0).T
         for jj in range(p_eff):
             invT[jj,jj] = (invT[jj,jj])/2.
         
@@ -453,7 +450,6 @@ class ToeplitzFactorizor:
         m = self.m
         for j in range (0, self.m):
             X2, beta = self.__house_vec(j, s2)
-            
             self.__seq_update(X2, beta, e1*m, e2*m, s2, j, m, n)
 
     def __seq_update(self,X2, beta, e1, e2, s2, j, m, n):
@@ -485,7 +481,7 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e1/m:
                 end = e1 % m or m
-            B1 = np.empty(end-start, complex) # size decreases with j.
+            B1 = np.empty(end-start, dtype='complex64') # size decreases with j.
             
             self.comm.Recv(B1, source=b.getWork1()%self.size, tag=4*num + b.rank)
             A1 = b.getA1()
@@ -506,22 +502,22 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m :
                 end = e2 % m or m
-            v = np.empty(end-start,complex) # size decreases with j.
+            v = np.empty(end-start, dtype='complex64') # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             if start != end:
                 A2 = b.getA2()
-                zgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+                cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
                 del A2
         
     def __house_vec(self, j, s2, j_count, b):
         isZero = np.array([0])
         b.setFalse(isZero)
         
-        X2 = np.zeros(self.m, complex)
-        data = np.zeros(self.m+1, complex)
-        beta = np.zeros(1, complex)
-        z = np.zeros(1, complex)
-        sigma = np.zeros(1, complex)
+        X2 = np.zeros(self.m, dtype='complex64')
+        data = np.zeros(self.m+1, dtype='complex64')
+        beta = np.zeros(1, dtype='complex64')
+        z = np.zeros(1, dtype='complex64')
+        sigma = np.zeros(1, dtype='complex64')
         blocks = self.blocks
         n = self.n
         num = self.numOfBlocks
@@ -546,7 +542,7 @@ class ToeplitzFactorizor:
         if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
 #            sigma = A2[j, :].dot(np.conj(A2[j,:]))
-            sigma[0] = dznrm2(A2.T[:, j])**2
+            sigma[0] = scnrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
             
