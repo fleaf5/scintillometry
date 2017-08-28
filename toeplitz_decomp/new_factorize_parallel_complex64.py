@@ -435,13 +435,12 @@ class ToeplitzFactorizor:
         elif method == YTY2:
             return yty2()
         
-    def __aggregate(self,S,  X2, beta, m, j, p_eff, method):
+    def __aggregate(self, S, X2, beta, m, j, p_eff, method):
         invT = S
         
         invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, dtype='complex64').T, trans=2, lower=1, overwrite_c=0).T
         for jj in range(p_eff):
             invT[jj,jj] = (invT[jj,jj])/2.
-        
         return invT
         
     
@@ -452,7 +451,7 @@ class ToeplitzFactorizor:
             X2, beta = self.__house_vec(j, s2)
             self.__seq_update(X2, beta, e1*m, e2*m, s2, j, m, n)
 
-    def __seq_update(self,X2, beta, e1, e2, s2, j, m, n):
+    def __seq_update(self, X2, beta, e1, e2, s2, j, m, n):
         u = j + 1
         num = self.numOfBlocks
         
@@ -545,10 +544,9 @@ class ToeplitzFactorizor:
             sigma[0] = scnrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
-            
             self.comm.Recv(z, source=0, tag=3*num + s2)
             self.comm.Recv(beta, source=0, tag=4*num + s2)
-
+            
             X2 = A2[j,:]/z
             A2[j, :] = X2
             
@@ -570,7 +568,8 @@ class ToeplitzFactorizor:
                 z = A1[j, j]+alpha[0]
                 A1[j,j] = -alpha[0]
             self.comm.Send(z, dest=s2%self.size, tag=3*num + s2)
-            beta = 2*z*z/(-sigma + z*z)           
+            
+            beta = 2*z*z/(-sigma + z*z)        
             self.comm.Send(beta, dest=s2%self.size, tag=4*num + s2)
             
             self.comm.Recv(data, source=s2%self.size, tag=5*num + s2)
