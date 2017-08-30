@@ -522,7 +522,7 @@ class ToeplitzFactorizor:
 #        if blocks.hasRank(s2):
         if self.rank == s2:
             A2 = blocks.getBlock(s2).getA2()
-            if np.all(np.abs(A2[j, :]) < 1e-13):
+            if np.all(np.abs(A2[j, :]) < 1e-3):
                 isZero=np.array([1])
                 b.setTrue(isZero)
                 self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
