@@ -197,7 +197,7 @@ class ToeplitzFactorizor:
         n = self.n
         m = self.m
         pad = self.pad
-        A1 = np.zeros((m, m),complex)
+        A1 = np.zeros((m, m), complex)
         A2 = np.zeros((m, m), complex)
         cinv = None
         

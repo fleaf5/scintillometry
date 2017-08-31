@@ -85,7 +85,7 @@ if debug:
 path="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 mkdir="mkdir "+path
     
-epsilon=np.identity(int(meff_f/2))  *10e-3
+epsilon=np.identity(int(meff_f/2))  *1e-3
 input_f=np.zeros(shape=(int(meff_f/2), int(sizen*meff_f/2)), dtype=complex)
 
 
