@@ -167,6 +167,10 @@ for j in np.arange(0,int(neff/2)):
     input_f[0:int(meff_f/2),j*int(meff_f/2):(j+1)*int(meff_f/2)] = sp.linalg.toeplitz(cols,rows)
     if j==0:
         input_f[0:int(meff_f/2),j*int(meff_f/2):(j+1)*int(meff_f/2)] = sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon
+
+for i in range(len(input_f[:,0])):
+    print input_f[i,i]
+
 print ("##########################")
 if neff == 1:
     neff -= 1
