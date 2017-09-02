@@ -154,7 +154,7 @@ if debug:
 path="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 mkdir="mkdir "+path
     
-epsilon=np.identity(int(meff_f/2))  *10e-8
+epsilon=np.identity(int(meff_f/2))  *10e-3
 input_f=np.zeros(shape=(int(meff_f/2), int(sizen*meff_f/2)), dtype=complex)
 
 
@@ -182,10 +182,6 @@ for rank in np.arange(0,nump):
     start = rank*size_node_temp
     file_name=path+'/'+str(rank)+".npy"
     np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
-    if 1:#rank == 0:
-        stuff = np.conj(input_f[:,start:start+size_node].T)
-        for i in range(len(stuff[:,0])):
-            print stuff[i,i]
 #    tar.add(file_name)
 #    os.remove(file_name)
 #tar.close()

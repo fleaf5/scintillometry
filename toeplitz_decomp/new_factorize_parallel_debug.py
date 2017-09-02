@@ -1,9 +1,8 @@
 import numpy as np
 #import scipy as sp
 from scipy.linalg.lapack import ztrtri
-from scipy.linalg.blas import zgeru, zherk, zgemm
+from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
 from numpy.linalg import cholesky, inv
-from numpy import triu
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 sys.path.insert(0, currentdir + "/Exceptions")
@@ -134,6 +133,12 @@ class ToeplitzFactorizor:
             if self.rank == 0:
                 print ("Loop {0}".format(k))
             
+            # Time loop over k.
+            if k == 1:
+                self.comm.Barrier()
+                if self.rank == 0:
+                    self.start_kloop = MPI.Wtime()
+                
             self.k = k
             
             #### ALGORITHM 3: STEP 4 #### 
@@ -146,6 +151,14 @@ class ToeplitzFactorizor:
                 self.__seq_reduc(s1, e1, s2, e2)
             else:
                 self.__block_reduc(s1, e1, s2, e2, m, p, method, k)
+            
+            
+            # Time loop over k.
+            if k == n*(1 + pad) - 1:
+                self.comm.Barrier()
+                if self.rank == 0:
+                    self.end_kloop = MPI.Wtime()
+                    print "k-loop time: "+str(self.end_kloop - self.start_kloop)
             
             # Save results immediately if we reached the end of the loop
             for b in self.blocks:
@@ -184,12 +197,15 @@ class ToeplitzFactorizor:
         n = self.n
         m = self.m
         pad = self.pad
-        A1 = np.zeros((m, m),complex)
+        A1 = np.zeros((m, m), complex)
         A2 = np.zeros((m, m), complex)
         cinv = None
         
         # The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0):
+            stuff = self.blocks.getBlock(0).getT()
+            for i in range(len(stuff[:,0])):
+                print stuff[i,i]
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c.T)
             cinv = inv(c)
@@ -532,7 +548,8 @@ class ToeplitzFactorizor:
 #        if blocks.hasRank(s2): # rank s2=k sends to and receives from rank 0.
         if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
-            sigma = A2[j, :].dot(np.conj(A2[j,:]))
+#            sigma = A2[j, :].dot(np.conj(A2[j,:]))
+            sigma[0] = dznrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
             
