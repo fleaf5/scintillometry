@@ -43,6 +43,11 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
 
+#for i in range(num_rows):
+#    for j in range(num_columns):
+#        if not abs(a[i,j]) < 1e35:
+#            print a[i,j]
+
 # load normal array
 #data = np.fromfile('C:\Users\Visal LeSok\Desktop\script\simulated_test\dynamic_spectrum_257_freq_00_f0326.5.bin',dtype=np.complex).reshape(-1,660)
 #a_f = np.load(sys.argv[1])
@@ -65,9 +70,9 @@ meff=sizem+sizem*pad
 meff_f=meff+pad2*meff
 
 a_input=np.zeros(shape=(neff,meff), dtype=complex)
-print (a_input.shape)
+#print (a_input.shape)
 a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
-print (a_input)
+#print (a_input)
 
 #plt.figure()
 #plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
@@ -107,7 +112,7 @@ if debug:
 c = a_input
 
 #plt.figure(figsize=(12,6))
-print (int(round(sizem/2.)))
+#print (int(round(sizem/2.)))
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
 #plt.subplot(1,2,1)
@@ -115,12 +120,13 @@ a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
+
 #plt.subplot(1,2,2)
 #plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 #plt.savefig('2.png') 
 if debug:
 	print (a_input,"after shift")
-print ('after transformation')
+#print ('after transformation')
 
 ## inverse Fourier transform 
 a_input=np.fft.ifft2(a_input,s=(neff,meff))
@@ -169,7 +175,7 @@ for j in np.arange(0,int(neff/2)):
         input_f[0:int(meff_f/2),j*int(meff_f/2):(j+1)*int(meff_f/2)] = sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon
 
 
-print ("##########################")
+#print ("##########################")
 if neff == 1:
     neff -= 1
         
@@ -182,10 +188,10 @@ for rank in np.arange(0,nump):
     start = rank*size_node_temp
     file_name=path+'/'+str(rank)+".npy"
     np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
-    if 1:#rank == 0:
+    if rank == 0:
         stuff = np.conj(input_f[:,start:start+size_node].T)
-        for i in range(len(stuff[:,0])):
-            print stuff[i,i]
+#        for i in range(len(stuff[:,0])):
+#            print stuff[i,i]
 #    tar.add(file_name)
 #    os.remove(file_name)
 #tar.close()

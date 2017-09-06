@@ -203,9 +203,6 @@ class ToeplitzFactorizor:
         
         # The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0):
-            stuff = self.blocks.getBlock(0).getT()
-            for i in range(len(stuff[:,0])):
-                print stuff[i,i]
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c.T)
             cinv = inv(c)
