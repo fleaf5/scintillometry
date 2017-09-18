@@ -5,7 +5,7 @@ The following is a rough description of how the decomposition is performed. This
 * This program takes the observed dynamic spectrum <math>I'(f, t)</math>, and converts it to ''n'' matrices of size ''2m x 2m'', which are the blocks of the matrix corresponding to the conjugate spectrum <math>\widetilde{I}(\tau, f_D)</math>. That is, it constructs the blocks <math>\bar{I}_k</math> which are described in Nilou's report.
 * This program saves ''n'' blocks, which are sufficient to construct the entire conjugate spectrum matrix, given that it is block Hermitian Toeplitz.
 
-###run_real_new.py###
+### run_real_new.py ###
 This is the main driver for the decomposition. It does the following:
 * Initializes MPI (defines variables ''comm'', ''size'' and ''rank''). Here, ''2n'' MPI process are initialized: 1 for each of the ''n'' blocks in the conjugate spectrum matrix saved by ''extract_realData2.py'', and 1 for each of the conjugate transposes of these ''n'' blocks.
 * Interprets arguments specified on command line (''n'', ''m'' etc.).
@@ -15,7 +15,7 @@ This is the main driver for the decomposition. It does the following:
 * For each MPI process/block, the Toeplitz factorization is performed using the ''fact'' function within ''ToeplitzFactorizor''.
 * Setting ''detailedSave'' to True will force the program to save on each iteration (slows code extremely).
 
-###new_factorize_parallel.py###
+### new_factorize_parallel.py ###
 This script defines the class ''ToeplitzFactorizor'' which has the following attributes:
 * ''comm, size, rank, n, m, pad, folder, m, detailedSave, k''
 * ''blocks'': an instance of the class ''Blocks'', which is defined in ''GeneratorBlocks.py''.
@@ -53,7 +53,7 @@ The program now performs the factorization as described in Algorithms 3, 4, 5, 8
 * If ''detailedSave = True'', save A1 for each MPI process.
 * The ''rank ='' 1 process creates the generator A(k) for the kth Schur complement.
 
-###GeneratorBlocks.py###
+### GeneratorBlocks.py ###
 This script defines the class ''Blocks'' which has the following attributes:
 * ''blocks'': a list which will be filled with instance(s) of the class ''Block'', which is defined in ''GeneratorBlock.py''.
 * ''currPos''
@@ -61,13 +61,13 @@ The class ''Blocks'' contains the following functions:
 * ''addBlock'': appends an instance of the ''Block'' class defined in ''GeneratorBlock.py'' to the ''blocks'' attribute of the current instance ''ToeplitzFactorizor''.
 * ''hasRank'', ''getBlock'', ''numOfWork1'', ''__iter__'', ''next''
 
-###GeneratorBlock.py###
+### GeneratorBlock.py ###
 This script defines the class ''Block'' which has the following attributes:
 * ''work1'', ''work2'', ''T''
 * ''rank'': the rank of the MPI process.
 The class ''Block'' contains the following functions:
 * ''setT'', ''deleteT'', ''createA'', ''createTemp'', ''createCond'', ''setTemp'', ''getTemp'', ''setTrue'', ''setFalse'', ''getCond'', ''setA1'', ''setA2'', ''setWork1'', ''setWork2'', ''setWork'', ''setName'', ''updateuc'', ''getWork'', ''getWork1'', ''getWork2'', ''getA1'', ''getA2'', ''getT''
 
-###ToeplitzFactorizorExceptions.py###
+### ToeplitzFactorizorExceptions.py ###
 Contains exceptions.
 
