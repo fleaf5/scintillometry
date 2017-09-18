@@ -22,6 +22,8 @@ This will create the directory `./processedData/gate0_numblock_4_meff_16_offsetn
 
 Note that if a directory with this name already exists, the data therein will be overwritten without warning when `extract_realData2.py` executes. 
 
+The extraction routine currently assumes that the input data is of type float32.
+
 The format of the directory name is: `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)`
 
 Note that the value of *m* is doubled in the directory name, but you must use the original value of *m* when you perform the decomposition.

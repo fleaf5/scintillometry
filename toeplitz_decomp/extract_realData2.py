@@ -16,12 +16,6 @@ import tarfile
 
 matplotlib.rcParams.update({'font.size': 13})
 
-#mm=mmap.mmap(-1,256)
-#np.set_printoptions(precision=2, suppress=True, linewidth=5000)
-#if len(sys.argv) < 8:
-#    print "Usage: %s filename num_rows num_columns offsetn offsetm sizen sizem" % (sys.argv[0])
-#    sys.exit(1)
-
 filename = str(sys.argv[1])
 num_rows=int(sys.argv[2]) # frequency
 num_columns=int(sys.argv[3]) # time
@@ -31,35 +25,12 @@ sizen=int(sys.argv[6]) # size of freq = n
 sizem=int(sys.argv[7]) # size of freq = m
 nump=sizen
 
-## looking for the meff number in filename
-#matchObj = re.search('freq_(\d*)',filename) 
-#if matchObj:    
-#    f=int(matchObj.group(1))
-#    print f
-
 if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+sizem>num_columns:
 	print ("Error sizes or offsets don't match")
 	sys.exit(1)
 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
 
-#for i in range(num_rows):
-#    for j in range(num_columns):
-#        if not abs(a[i,j]) < 1e35:
-#            print a[i,j]
-
-# load normal array
-#data = np.fromfile('C:\Users\Visal LeSok\Desktop\script\simulated_test\dynamic_spectrum_257_freq_00_f0326.5.bin',dtype=np.complex).reshape(-1,660)
-#a_f = np.load(sys.argv[1])
-#a = np.copy(a_f)
-
-#a_f = np.fromfile(sys.argv[1],dtype=np.complex).reshape(-1,660)
-#print a_f.shape
-#a = a_f
-
-
-
-##### change to 1 for padding #####
 pad=1
 pad2=1
 debug=0
@@ -70,34 +41,12 @@ meff=sizem+sizem*pad
 meff_f=meff+pad2*meff
 
 a_input=np.zeros(shape=(neff,meff), dtype=complex)
-#print (a_input.shape)
 a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
-#print (a_input)
-
-#plt.figure()
-#plt.imshow(a_input[offsetn:offsetn+sizen,offsetm:offsetm+sizem].real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.colorbar()
-#plt.title(r"Dynamic Spectrum: Input")
-#plt.ylabel(r"Time")
-#plt.xlabel(r"Freq")
-#plt.savefig('dyn_spec_input.png')
-#plt.close()
-
-#plt.figure()
-#plt.imshow(a_input.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.colorbar()
-#plt.title(r"Dynamic Spectrum: First Padding")
-#plt.ylabel(r"Time")
-#plt.xlabel(r"Freq")
-#plt.savefig('dyn_spec_1padding.png')
-#plt.close()
 
 ##### specifying file directories #####
 newdir = "gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 if not os.path.exists("processedData/"+newdir):	
 	os.makedirs("processedData/"+newdir)
-#filen="processedData/"+newdir+"/"+newdir+"_dynamic.npy"
-#np.save(filen,a_input)
 
 const=int(pad2*meff/2)
 
@@ -111,22 +60,14 @@ if debug:
 	print (a_input,"after first fft")
 c = a_input
 
-#plt.figure(figsize=(12,6))
-#print (int(round(sizem/2.)))
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
-#plt.subplot(1,2,1)
-#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
 
-#plt.subplot(1,2,2)
-#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.savefig('2.png') 
 if debug:
 	print (a_input,"after shift")
-#print ('after transformation')
 
 ## inverse Fourier transform 
 a_input=np.fft.ifft2(a_input,s=(neff,meff))
@@ -138,24 +79,6 @@ if debug:
 a_input=np.fft.fft2(a_input,s=(neff,meff))
 if debug:
 	print (a_input,"after third fft")
-###############################################
-
-#plt.figure(figsize=(12,6))
-#plt.subplot(1,2,1)
-#plt.imshow((a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.colorbar()
-#plt.title(r"Conjugate Spectrum: Rooting and Squaring")
-#plt.ylabel(r"Lag")
-#plt.xlabel(r"Dopp Freq")
-
-#plt.subplot(1,2,2)
-#plt.imshow(np.fft.ifft2(a_input).real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.colorbar()
-#plt.title(r"Dynamic Spectrum: Rooting and Squaring")
-#plt.ylabel(r"Time")
-#plt.xlabel(r"Freq")
-#plt.savefig('dyn_spec_2rooting.png')
-#plt.close()
 
 path="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 mkdir="mkdir "+path
@@ -178,8 +101,7 @@ for j in np.arange(0,int(neff/2)):
 #print ("##########################")
 if neff == 1:
     neff -= 1
-        
-#tar = tarfile.open('data.tar.gz','w:gz')
+    
 for rank in np.arange(0,nump):
     size_node_temp=(sizen//nump)*int(meff_f/2)
     size_node=size_node_temp
@@ -188,29 +110,7 @@ for rank in np.arange(0,nump):
     start = rank*size_node_temp
     file_name=path+'/'+str(rank)+".npy"
     np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
-    if rank == 0:
-        stuff = np.conj(input_f[:,start:start+size_node].T)
-#        for i in range(len(stuff[:,0])):
-#            print stuff[i,i]
-#    tar.add(file_name)
-#    os.remove(file_name)
-#tar.close()
-    
-# dat file for toeplitz matrix
-#output_file="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s.dat" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
-#output = np.memmap(output_file, dtype='complex', mode='w+', shape=(int(meff_f/2), sizen*int(meff_f/2)),order='F')
-#output[:,:]=input_f[:meff_f,:]
 
-#plt.figure()
-#plt.imshow(output.real, aspect='auto', interpolation='nearest', origin='lower', cmap='hot')
-#plt.colorbar()
-#plt.savefig('toep.png')
-#plt.close()
-
-#del output
-
-
-#mm.close()
 if debug:
     pad=1
     u=toeplitz_blockschur(input_f[:neff/2*meff_f,:neff/2*meff_f],meff_f,pad)
