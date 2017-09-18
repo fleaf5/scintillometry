@@ -1,7 +1,7 @@
-#Outline of code#
+# Outline of code #
 The following is a rough description of how the decomposition is performed. This explanation is written specifically for the 'yty2' method when padding is used (i.e. when ''pad = 1'')--the process might differ significantly for other methods.
 
-###extract_realData2.py###
+### extract_realData2.py ###
 * This program takes the observed dynamic spectrum <math>I'(f, t)</math>, and converts it to ''n'' matrices of size ''2m x 2m'', which are the blocks of the matrix corresponding to the conjugate spectrum <math>\widetilde{I}(\tau, f_D)</math>. That is, it constructs the blocks <math>\bar{I}_k</math> which are described in Nilou's report.
 * This program saves ''n'' blocks, which are sufficient to construct the entire conjugate spectrum matrix, given that it is block Hermitian Toeplitz.
 
