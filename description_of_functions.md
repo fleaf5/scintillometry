@@ -2,7 +2,7 @@
 The following is a rough description of how the decomposition is performed. This explanation is written specifically for the 'yty2' method when padding is used (i.e. when ''pad = 1'')--the process might differ significantly for other methods.
 
 ### extract_realData2.py ###
-* This program takes the observed dynamic spectrum <math>I'(f, t)</math>, and converts it to ''n'' matrices of size ''2m x 2m'', which are the blocks of the matrix corresponding to the conjugate spectrum <math>\widetilde{I}(\tau, f_D)</math>. That is, it constructs the blocks <math>\bar{I}_k</math> which are described in Nilou's report.
+* This program takes the observed dynamic spectrum I'(f, t), and converts it to ''n'' matrices of size ''2m x 2m'', which are the blocks of the matrix corresponding to the conjugate spectrum I(\tau, f_D). That is, it constructs the blocks I_k which are described in Nilou's report.
 * This program saves ''n'' blocks, which are sufficient to construct the entire conjugate spectrum matrix, given that it is block Hermitian Toeplitz.
 
 ### run_real_new.py ###
@@ -46,10 +46,10 @@ When each MPI process first defines an instance of ''ToeplitzFactorizor'' from '
 * Add the current instance of ''Block'' to the attribute ''blocks'' for the current instance of ''Blocks''. The list ''blocks'' should only contain one instance of ''Block'' in the yty2 method.
 The program now performs the factorization as described in Algorithms 3, 4, 5, 8, 15 and 16 of N. Bereux, Linear Algebra and its Applications '''404''', 193 (2005). The easiest way to understand the code is to read that document. Each MPI process executes the ''fact'' function defined in ''new_factorize_parallel.py'', which initiates Algorithm 3.
 * Algorithm 4: Set up generator A.
-**If starting a new run, call ''__setup_gen()'': 
-**The elements of the first (second) column of the generator matrix A are stored in the variables A1 (A2) of each MPI process.
-**In contrast to the generator described in N. Bereux, Linear Algebra and its Applications '''404''', 193 (2005), the generator matrix A constructed here is ''n2m x 4m'', and the block in the first row, second column is nonzero.
-** Delete the matrix T which was defined for each MPI process with ''rank < n''.
+* If starting a new run, call ''__setup_gen()'': 
+* The elements of the first (second) column of the generator matrix A are stored in the variables A1 (A2) of each MPI process.
+* In contrast to the generator described in N. Bereux, Linear Algebra and its Applications '''404''', 193 (2005), the generator matrix A constructed here is ''n2m x 4m'', and the block in the first row, second column is nonzero.
+* Delete the matrix T which was defined for each MPI process with ''rank < n''.
 * If ''detailedSave = True'', save A1 for each MPI process.
 * The ''rank ='' 1 process creates the generator A(k) for the kth Schur complement.
 
