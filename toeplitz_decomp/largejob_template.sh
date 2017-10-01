@@ -1,11 +1,11 @@
 #!/bin/sh
 # @ job_name           = toeplitz
 # @ job_type           = bluegene
-# @ comment            = "n=512, m=512, p=1024, zero-padded"
+# @ comment            = "n=1024, m=660, p=330, zero-padded"
 # @ error              = $(job_name).$(Host).$(jobid).err
 # @ output             = $(job_name).$(Host).$(jobid).out
 # @ bg_size            = 64
-# @ wall_clock_limit   = 4:00:00
+# @ wall_clock_limit   = 24:00:00
 # @ bg_connectivity    = Torus
 # @ queue 
 
@@ -17,17 +17,17 @@
 method=yty2					# Scheme of decomposition. yty2 is the method described in Nilou's report.
 offsetn=0
 offsetm=0
-n=512
-m=512
-p=128                       # Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
+n=1024
+m=660
+p=330                       # Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
 pad=1						# 0 for no padding; 1 for padding.
 
 nodes=64					# Nonfunctional -- only for presentation purposes.
-NP=1024						# Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
-RPN=16						# Number of MPI processes per node = 1,2,4,8,16,32,64. RPN <= NP
-OMP=4           # Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) <= 64 = threads per node
+NP=2048						# Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
+RPN=32						# Number of MPI processes per node = 1,2,4,8,16,32,64. RPN <= NP
+OMP=2           # Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) <= 64 = threads per node
 
-sourcedir=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp # Directory of code.
+sourcedir=/scratch/a/aparamek/sufkes/scintillometry_copy/toeplitz_decomp # Directory of code.
 
 source /scratch/s/scinet/nolta/venv-numpy-scipy/setup
 module unload bgqgcc/4.4.6

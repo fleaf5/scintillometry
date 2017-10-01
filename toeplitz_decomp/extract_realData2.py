@@ -2,19 +2,9 @@ import sys
 import numpy as np
 import scipy as sp
 from scipy import linalg
-#from numpy import linalg as LA
-#from toeplitz_decomp import *
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pylab as plt
-import matplotlib.cm as cmaps
 import os	
 import mmap
-import re
 from scipy.fftpack import fftshift, fft2, ifft2, ifftshift
-import tarfile
-
-matplotlib.rcParams.update({'font.size': 13})
 
 filename = str(sys.argv[1])
 num_rows=int(sys.argv[2]) # frequency
