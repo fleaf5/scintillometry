@@ -12,7 +12,8 @@ num_columns=int(sys.argv[3]) # time
 offsetn=int(sys.argv[4]) # offset in freq
 offsetm=int(sys.argv[5]) # offset in time
 sizen=int(sys.argv[6]) # size of freq = n
-sizem=int(sys.argv[7]) # size of freq = m
+sizem=int(sys.argv[7]) # size of time = m
+
 nump=sizen
 
 if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+sizem>num_columns:
@@ -20,6 +21,8 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 	sys.exit(1)
 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
+#a = np.load(filename)
+#print a.shape
 
 pad=1
 pad2=1
