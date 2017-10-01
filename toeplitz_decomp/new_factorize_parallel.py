@@ -1,6 +1,6 @@
 import numpy as np
 #import scipy as sp
-from scipy.linalg.lapack import ztrtri
+from scipy.linalg.lapack import ztrtrs
 from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
 from numpy.linalg import cholesky, inv
 import os,sys,inspect
@@ -337,7 +337,7 @@ class ToeplitzFactorizor:
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
-                    M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T
+                    M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -383,7 +383,7 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = zgemm(alpha=1.0, a=ztrtri(invT.T[:p_eff,:p_eff],lower=1)[0], b=M.T).T            
+                M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
