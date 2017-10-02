@@ -2,7 +2,7 @@ import numpy as np
 #import scipy as sp
 from scipy.linalg.lapack import ztrtrs
 from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
-from numpy.linalg import cholesky, inv
+from numpy.linalg import cholesky
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 sys.path.insert(0, currentdir + "/Exceptions")
@@ -185,21 +185,19 @@ class ToeplitzFactorizor:
         pad = self.pad
         A1 = np.zeros((m, m), complex)
         A2 = np.zeros((m, m), complex)
-        cinv = None
         
         # The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0):
             c = cholesky(self.blocks.getBlock(0).getT())
-            c = np.conj(c.T)
-            cinv = inv(c)
+            c = np.conj(c)
         else:
-            cinv = np.empty((m,m),complex)
+            c = np.empty((m,m),complex)
             
-        self.comm.Bcast(cinv, root=0)
+        self.comm.Bcast(c, root=0)
 
         for b in self.blocks:
             if b.rank < self.n:
-                b.createA(b.getT().dot(cinv))
+                b.createA(ztrtrs(a=c, b=b.getT().T, lower=1)[0].T)
             
         # We are done with T.
         for b in self.blocks:
