@@ -9,14 +9,14 @@ module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1
 # Free to choose RPN and OMP_NUM_THREADS such that (RPN * OMP_NUM_THREAD) <= number of threads per node = 64.
 
 method=yty2     # Scheme of decomposition. yty2 is the method described in Nilou's report.
-offsetn=0
-offsetm=0
-n=256
-m=256
-p=64            # VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
+offsetn=450
+offsetm=70
+n=150
+m=100
+p=50            # VISAL SAYS: Can set to m/4, m/2, m, 2m. Fastest when set to m/2 or m/4.
 pad=1           # 0 for no padding; 1 for padding.
 
-NP=512          # Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
+NP=300          # Number of MPI processes. Must be set to 2n for this code. NP <= (RPN * bg_size)
 RPN=16          # Number of MPI processes per node = 1,2,4,8,16,32,64. RPN <= NP
 OMP=4           # Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) <= 64 = threads per node
 
