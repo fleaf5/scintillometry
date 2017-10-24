@@ -22,16 +22,16 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
 #a = np.load(filename)
-#print a.shape
 
 pad=1
 pad2=1
-debug=0
 
 neff=sizen+sizen*pad
 meff=sizem+sizem*pad
 
 meff_f=meff+pad2*meff
+
+print "Zero padding."
 
 a_input=np.zeros(shape=(neff,meff), dtype=complex)
 a_input[:sizen,:sizem]=np.copy(a[offsetn:offsetn+sizen,offsetm:offsetm+sizem])
@@ -44,69 +44,47 @@ if not os.path.exists("processedData/"+newdir):
 const=int(pad2*meff/2)
 
 ##### ensuring positive definite matrix #####
-norm = a.shape[0]*a.shape[1]
+print "Square rooting."
 a_input=np.sqrt(a_input)
-if debug:
-	print (a_input,"after sqrt")
-a_input[:sizen,:sizem]=np.fft.fft2(a_input,s=(sizen,sizem))
-if debug:
-	print (a_input,"after first fft")
-c = a_input
 
+print "Computing first Fourier transfrom"
+a_input[:sizen,:sizem]=np.fft.fft2(a_input,s=(sizen,sizem))
+
+print "Shifting blocks."
 a_input[0:sizen, meff-int(round(sizem/2.)):meff] =  a_input[0:sizen, int(sizem/2 + 0.5):sizem]
 a_input[0:sizen, int(round(sizem/2.)):sizem] = 0+0j
 
 a_input[neff-int(round(sizen/2.)):neff,0:meff] = a_input[int(sizen/2+0.5):sizen, 0:meff]
 a_input[int(round(sizen/2.)):sizen, 0:meff] = 0+0j
 
-if debug:
-	print (a_input,"after shift")
-
 ## inverse Fourier transform 
+print "Computing inverse Fourier transform."
 a_input=np.fft.ifft2(a_input,s=(neff,meff))
-if debug:
-	print (a_input,"after inverse fft")
+
+print "Squaring."
 a_input=np.power(np.abs(a_input),2)
-if debug:
-	print (a_input,"after abs^2")
+
+print "Computing second Fourier transform."
 a_input=np.fft.fft2(a_input,s=(neff,meff))
-if debug:
-	print (a_input,"after third fft")
 
 path="processedData/gate0_numblock_%s_meff_%s_offsetn_%s_offsetm_%s" %(str(sizen),str(meff_f/2),str(offsetn),str(offsetm))
 mkdir="mkdir "+path
-    
+
 epsilon=np.identity(int(meff_f/2))  *1e-7
-input_f=np.zeros(shape=(int(meff_f/2), int(sizen*meff_f/2)), dtype=complex)
 
 
 #################### making blocked toeplitz elements #########################################
+print "Making blocked Toeplitz elements and saving them."
 if neff == 1:
     neff += 1
 for j in np.arange(0,int(neff/2)):
+#    print str(float(j)/(float(neff)/2)*100)+"%\r",
+    print '{:.2f}'.format(float(j)/(float(neff)/2)*100)+"% complete\r",
+    sys.stdout.flush()
     rows = np.append(a_input[j,:meff-const], np.zeros(pad2*meff*0+const))
     cols = np.append(np.append(a_input[j,0], a_input[j,const+1:][::-1]), np.zeros(pad2*meff*0+const))
-    input_f[0:int(meff_f/2),j*int(meff_f/2):(j+1)*int(meff_f/2)] = sp.linalg.toeplitz(cols,rows)
+    file_name=path+'/'+str(j)+".npy"
+    np.save(file_name, np.conj(sp.linalg.toeplitz(cols,rows)).T)
     if j==0:
-        input_f[0:int(meff_f/2),j*int(meff_f/2):(j+1)*int(meff_f/2)] = sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon
-
-
-#print ("##########################")
-if neff == 1:
-    neff -= 1
-    
-for rank in np.arange(0,nump):
-    size_node_temp=(sizen//nump)*int(meff_f/2)
-    size_node=size_node_temp
-    if rank==nump-1:
-        size_node = (sizen//nump)*int(meff_f/2)+ (sizen%nump)*int(meff_f/2)
-    start = rank*size_node_temp
-    file_name=path+'/'+str(rank)+".npy"
-    np.save(file_name, np.conj(input_f[:,start:start+size_node].T))
-
-if debug:
-    pad=1
-    u=toeplitz_blockschur(input_f[:neff/2*meff_f,:neff/2*meff_f],meff_f,pad)
-    print (u[:,(neff/2)*(pad+1)*(meff_f)-meff_f/2-1:(neff/2)*(pad+1)*(meff_f)-meff_f/2])
-
+        np.save(file_name, np.conj(sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon).T)
     
