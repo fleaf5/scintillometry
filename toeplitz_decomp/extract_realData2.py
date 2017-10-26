@@ -16,12 +16,12 @@ sizem=int(sys.argv[7]) # size of time = m
 
 nump=sizen
 
-if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+sizem>num_columns:
-	print ("Error sizes or offsets don't match")
-	sys.exit(1)
+#if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+sizem>num_columns:
+#	print ("Error sizes or offsets don't match")
+#	sys.exit(1)
 
-a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
-#a = np.load(filename)
+#a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
+a = np.load(filename)
 
 pad=1
 pad2=1
