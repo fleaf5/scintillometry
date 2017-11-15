@@ -1,7 +1,5 @@
 import numpy as np
-#import scipy as sp
-from scipy.linalg.lapack import ztrtrs
-from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
+from scipy.linalg.blas import zgeru, zherk, zgemm, ztrsm, dznrm2
 from numpy.linalg import cholesky
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -197,7 +195,7 @@ class ToeplitzFactorizor:
 
         for b in self.blocks:
             if b.rank < self.n:
-                b.createA(ztrtrs(a=c, b=b.getT().T, lower=1)[0].T)
+                b.createA(ztrsm(alpha=1.0, a=c, b=b.getT().T, lower=1).T)
             
         # We are done with T.
         for b in self.blocks:
@@ -335,7 +333,7 @@ class ToeplitzFactorizor:
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
-                    M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+                    M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -381,7 +379,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+                M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+                
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
@@ -521,7 +520,6 @@ class ToeplitzFactorizor:
         
         if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
-#            sigma = A2[j, :].dot(np.conj(A2[j,:]))
             sigma[0] = dznrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
