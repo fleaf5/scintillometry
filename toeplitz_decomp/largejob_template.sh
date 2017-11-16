@@ -29,7 +29,13 @@ OMP=2           # Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (
 
 sourcedir=/scratch/a/aparamek/sufkes/scintillometry_copy/toeplitz_decomp # Directory of code.
 
-source /scratch/s/scinet/nolta/venv-numpy-scipy/setup
+if [ "$NP" -ne "$(( 2*n ))" ]
+   then
+   echo "Error: Set the number of MPI processes to 2n. Quitting."
+   exit 1   
+fi
+
+source /scratch/s/scinet/nolta/venv-numpy-1.13.3-scipy-1.0.0/setup
 module unload bgqgcc/4.4.6
 module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1
 
@@ -39,5 +45,5 @@ echo "----------------------"
 echo "STARTING in directory $PWD"
 date
 echo "n ${n}, m ${m}, bg ${nodes}, np ${NP}, rpn ${RPN}, omp ${OMP}"
-time runjob --np ${NP} --ranks-per-node=${RPN} --envs OMP_NUM_THREADS=${OMP} HOME=$HOME LD_LIBRARY_PATH=/scinet/bgq/Libraries/HDF5-1.8.12/mpich2-gcc4.8.1//lib:/scinet/bgq/Libraries/fftw-3.3.4-gcc4.8.1/lib:$LD_LIBRARY_PATH PYTHONPATH=/scinet/bgq/tools/Python/python2.7.3-20131205/lib/python2.7/site-packages/ : /scratch/s/scinet/nolta/venv-numpy-scipy/bin/python $sourcedir/run_real_new.py ${method} ${offsetn} ${offsetm} ${n} ${m} ${p} ${pad}
+time runjob --np ${NP} --ranks-per-node=${RPN} --envs OMP_NUM_THREADS=${OMP} HOME=$HOME LD_LIBRARY_PATH=/scinet/bgq/Libraries/HDF5-1.8.12/mpich2-gcc4.8.1//lib:/scinet/bgq/Libraries/fftw-3.3.4-gcc4.8.1/lib:$LD_LIBRARY_PATH PYTHONPATH=/scinet/bgq/tools/Python/python2.7.3-20131205/lib/python2.7/site-packages/ : /scratch/s/scinet/nolta/venv-numpy-1.13.3-scipy-1.0.0/bin/python $sourcedir/run_real_new.py ${method} ${offsetn} ${offsetm} ${n} ${m} ${p} ${pad}
 echo "ENDED"

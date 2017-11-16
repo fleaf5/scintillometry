@@ -1,5 +1,5 @@
 #!/bin/bash
-source /scratch/s/scinet/nolta/venv-numpy-scipy/setup
+source /scratch/s/scinet/nolta/venv-numpy-1.13.3-scipy-1.0.0/setup
 module unload bgqgcc/4.4.6
 module load binutils/2.23 bgqgcc/4.8.1 mpich2/gcc-4.8.1
 
@@ -26,4 +26,4 @@ if [ "$NP" -ne "$(( 2*n ))" ]
    exit 1   
 fi
 
-time runjob --np ${NP} --ranks-per-node=${RPN} --envs OMP_NUM_THREADS=${OMP} HOME=$HOME LD_LIBRARY_PATH=/scinet/bgq/Libraries/HDF5-1.8.12/mpich2-gcc4.8.1//lib:/scinet/bgq/Libraries/fftw-3.3.4-gcc4.8.1/lib:$LD_LIBRARY_PATH PYTHONPATH=/scinet/bgq/tools/Python/python2.7.3-20131205/lib/python2.7/site-packages/ : /scratch/s/scinet/nolta/venv-numpy-scipy/bin/python run_real_new.py ${method} ${offsetn} ${offsetm} ${n} ${m} ${p} ${pad}
+time runjob --np ${NP} --ranks-per-node=${RPN} --envs OMP_NUM_THREADS=${OMP} HOME=$HOME LD_LIBRARY_PATH=/scinet/bgq/Libraries/HDF5-1.8.12/mpich2-gcc4.8.1//lib:/scinet/bgq/Libraries/fftw-3.3.4-gcc4.8.1/lib:$LD_LIBRARY_PATH PYTHONPATH=/scinet/bgq/tools/Python/python2.7.3-20131205/lib/python2.7/site-packages/ : /scratch/s/scinet/nolta/venv-numpy-1.13.3-scipy-1.0.0/bin/python run_real_new.py ${method} ${offsetn} ${offsetm} ${n} ${m} ${p} ${pad}
