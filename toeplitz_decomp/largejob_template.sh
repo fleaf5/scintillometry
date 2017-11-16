@@ -27,7 +27,7 @@ NP=2048						# Number of MPI processes. Must be set to 2n for this code. NP <= (
 RPN=32						# Number of MPI processes per node = 1,2,4,8,16,32,64. RPN <= NP
 OMP=2           # Number of OpenMP threads per MPI process = 1,2,4,8,16,32,64. (RPN * OMP_NUM_THREADS ) <= 64 = threads per node
 
-sourcedir=/scratch/a/aparamek/sufkes/scintillometry_copy/toeplitz_decomp # Directory of code.
+sourcedir=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp # Directory of code.
 
 if [ "$NP" -ne "$(( 2*n ))" ]
    then
