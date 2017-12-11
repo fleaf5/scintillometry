@@ -18,6 +18,7 @@ MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
 startTime = time()
 
+np.seterr(all='raise') # Stop program if NumPy error occurs.
 
 SEQ, WY1, WY2, YTY1, YTY2 = "seq", "wy1", "wy2", "yty1", "yty2"
 class ToeplitzFactorizor:
