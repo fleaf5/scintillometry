@@ -84,7 +84,9 @@ for j in np.arange(0,int(neff/2)):
     rows = np.append(a_input[j,:meff-const], np.zeros(pad2*meff*0+const))
     cols = np.append(np.append(a_input[j,0], a_input[j,const+1:][::-1]), np.zeros(pad2*meff*0+const))
     file_name=path+'/'+str(j)+".npy"
-    np.save(file_name, np.conj(sp.linalg.toeplitz(cols,rows)).T)
+    
+    ## Save conjugate transpose of block j
+    np.save(file_name, np.conj(sp.linalg.toeplitz(cols,rows)).T) 
     if j==0:
         np.save(file_name, np.conj(sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon).T)
     
