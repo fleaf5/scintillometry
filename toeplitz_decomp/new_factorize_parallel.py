@@ -130,7 +130,7 @@ class ToeplitzFactorizor:
         for k in range(self.kCheckpoint + 1,n*(1 + pad)):
             
             if self.rank == 0:
-                print ("Loop {0}".format(k))
+                print ("Loop {0} of {1}".format(k,2*n-1))
                 
             self.k = k
             
@@ -150,7 +150,7 @@ class ToeplitzFactorizor:
                 if b.rank <=e1 and b.rank + k == n*(1 + pad) - 1:
                     b.updateuc(k%self.n)
                 if b.rank <= e1 and self.detailedSave:
-                    np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), b.getA1())
+                    np.save("results/{0}/L_{1}-{2}.npy".format(folder, k, b.rank + k), -b.getA1())
                 
             # CheckPoint
             saveCheckpoint = np.array([0])
@@ -541,9 +541,10 @@ class ToeplitzFactorizor:
             A1 = blocks.getBlock(0).getA1()
             self.comm.Recv(sigma, source=s2%self.size, tag=2*num + s2)
             alpha = (A1[j,j]**2 - sigma)**0.5
-            if (np.real(A1[j,j] + alpha[0]) < np.real(A1[j, j] - alpha[0])):
-                z = A1[j, j]-alpha[0]
-                A1[j,j] = alpha[0]
+            x = sigma/A1[j,j]**2
+            if (np.absolute(x) < 1e-12) and (A1.real[j,j] < 0):
+                z = A1[j,j]*x/2
+                A1[j,j] = -alpha[0]
             else:
                 z = A1[j, j]+alpha[0]
                 A1[j,j] = -alpha[0]
