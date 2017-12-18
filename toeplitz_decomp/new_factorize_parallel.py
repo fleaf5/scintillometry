@@ -509,7 +509,7 @@ class ToeplitzFactorizor:
             if np.all(np.abs(A2[j, :]) < 1e-50): # This number was set to 1e-13, which led to highly inaccurate solutions when called. 
                 isZero=np.array([1])
                 b.setTrue(isZero)
-                self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
+            self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
             del A2
         else:
             self.comm.Bcast(b.getCond(), root=s2%self.size)
