@@ -37,14 +37,8 @@ class ToeplitzFactorizor:
         self.numOfBlocks = n*(1 + pad)
         
         # Associate a GPU with each MPI process.
-        if (af.device.get_device_count() >= self.size): # multiplie GPUs; 1 MPI process per GPU
-            af.device.set_device(self.rank)
-            self.af_device_id = af.device.get_device()
-        elif (af.device.get_device_count() > 1): # multiple GPUs; multiple MPI processes per GPU
-            af.device.set_device(self.rank % af.get_device_count())
-            self.af_device_id = af.device.get_device()
-        else: # 1 GPU; multiple MPI processes per GPU
-            self.af_device_id = af.device.get_device()
+        af.device.set_device(self.rank % af.get_device_count())
+        self.af_device_id = af.device.get_device()
         print "rank: "+str(self.rank)+", af.device.get_device(): "+str(af.device.get_device())+", self.af_device_id: "+str(self.af_device_id)
             
         
