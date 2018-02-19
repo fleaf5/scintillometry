@@ -21,7 +21,7 @@ else:
     p		= int(sys.argv[6])
     pad		= sys.argv[7] == "1" or sys.argv[7] == "True"
     
-    detailedSave = True
+    detailedSave = False
     if len(sys.argv) == 9:
         detailedSave = sys.argv[8] == "1" or sys.argv[8] == "True"
         
