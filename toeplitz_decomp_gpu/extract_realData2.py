@@ -20,8 +20,8 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 	sys.exit(1)
 
 ## Load dynamic spectrum I(f,t). Edit this line according to file format. 
-a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
-#a = np.load(filename).real
+#a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
+a = np.load(filename).real
 
 ## Set constants.
 pad=1
