@@ -15,7 +15,7 @@ pad=1
 
 # Specify location of Python and script.
 PYTHON=/home/a/aparamek/sufkes/anaconda2/bin/python2
-SCRIPT=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp/run_real_new_pre_scipy_1.py
+SCRIPT=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp/run_real_new.py
 
 # Submit deconvolution job.
 cd $SLURM_SUBMIT_DIR
