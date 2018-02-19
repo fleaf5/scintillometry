@@ -19,4 +19,4 @@ SCRIPT=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp/run_real_new.py
 
 # Submit deconvolution job.
 cd $SLURM_SUBMIT_DIR
-srun $PYTHON $SCRIPT $method $offsetn $offsetm $n $m $p $pad # number of tasks to run is specified above.
+time srun $PYTHON $SCRIPT $method $offsetn $offsetm $n $m $p $pad # number of tasks to run is specified above.
