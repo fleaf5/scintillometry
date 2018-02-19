@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.linalg.blas import zgeru, zherk, zgemm, ztrsm, dznrm2
+from scipy.linalg.lapack import ztrtrs
+from scipy.linalg.blas import zgeru, zherk, zgemm, dznrm2
 from numpy.linalg import cholesky
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -196,7 +197,8 @@ class ToeplitzFactorizor:
 
         for b in self.blocks:
             if b.rank < self.n:
-                b.createA(ztrsm(alpha=1.0, a=c, b=b.getT().T, lower=1).T)
+#                b.createA(ztrsm(alpha=1.0, a=c, b=b.getT().T, lower=1).T)
+                b.createA(ztrtrs(a=c, b=b.getT().T, lower=1)[0].T)
             
         # We are done with T.
         for b in self.blocks:
@@ -334,7 +336,8 @@ class ToeplitzFactorizor:
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
-                    M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                    M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+                    M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -380,7 +383,8 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+                M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -545,6 +549,7 @@ class ToeplitzFactorizor:
             alpha = (A1[j,j]**2 - sigma)**0.5
             x = sigma/A1[j,j]**2
             if (np.absolute(x) < 1e-12) and (A1.real[j,j] < 0):
+#                print "Using expansion to calculate z."
                 z = A1[j,j]*x/2
                 A1[j,j] = -alpha[0]
             else:

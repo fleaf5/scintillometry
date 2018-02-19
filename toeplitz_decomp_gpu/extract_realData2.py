@@ -21,7 +21,7 @@ if offsetn>num_rows or offsetm>num_columns or offsetn+sizen>num_rows or offsetm+
 
 ## Load dynamic spectrum I(f,t). Edit this line according to file format. 
 a = np.memmap(sys.argv[1], dtype='float32', mode='r', shape=(num_rows,num_columns),order='F')
-#a = np.load(filename)
+#a = np.load(filename).real
 
 ## Set constants.
 pad=1
@@ -48,7 +48,7 @@ const=int(pad2*meff/2)
 print "Square rooting."
 a_input=np.sqrt(a_input)
 
-print "Computing first Fourier transfrom"
+print "Computing first Fourier transform"
 a_input[:sizen,:sizem]=np.fft.fft2(a_input,s=(sizen,sizem))
 
 print "Shifting blocks."
@@ -84,9 +84,7 @@ for j in np.arange(0,int(neff/2)):
     rows = np.append(a_input[j,:meff-const], np.zeros(pad2*meff*0+const))
     cols = np.append(np.append(a_input[j,0], a_input[j,const+1:][::-1]), np.zeros(pad2*meff*0+const))
     file_name=path+'/'+str(j)+".npy"
-    
-    ## Save conjugate transpose of block j
-    np.save(file_name, np.conj(sp.linalg.toeplitz(cols,rows)).T) 
+    np.save(file_name, np.conj(sp.linalg.toeplitz(cols,rows)).T.astype('complex64'))
     if j==0:
-        np.save(file_name, np.conj(sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon).T)
+        np.save(file_name, np.conj(sp.linalg.toeplitz(np.conj(np.append(a_input[j,:meff-const],np.zeros(pad2*meff*0+const))))+epsilon).T.astype('complex64'))
     

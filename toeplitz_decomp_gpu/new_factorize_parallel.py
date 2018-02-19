@@ -1,23 +1,28 @@
 import numpy as np
-from scipy.linalg.lapack import ztrtrs
-from scipy.linalg.blas import dznrm2
+from scipy.linalg.blas import cgeru, cherk, cgemm, scnrm2#, ctrsm
+from scipy.linalg.lapack import ctrtrs
 from numpy.linalg import cholesky
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 sys.path.insert(0, currentdir + "/Exceptions")
+
 from ToeplitzFactorizorExceptions import *
+
+from mpi4py import MPI
+
 from GeneratorBlocks import Blocks
 from GeneratorBlock import Block
 
-from mpi4py import MPI
-import arrayfire as af
 from time import time
+import arrayfire as af
+
+np.seterr(all='raise')
+
+use_gpu = True
 
 MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
 startTime = time()
-
-np.seterr(all='raise') # Stop program if NumPy error occurs.
 
 SEQ, WY1, WY2, YTY1, YTY2 = "seq", "wy1", "wy2", "yty1", "yty2"
 class ToeplitzFactorizor:
@@ -37,10 +42,10 @@ class ToeplitzFactorizor:
         self.numOfBlocks = n*(1 + pad)
         
         # Associate a GPU with each MPI process.
-        af.device.set_device(self.rank % af.get_device_count())
-        self.af_device_id = af.device.get_device()
-        print "rank: "+str(self.rank)+", af.device.get_device(): "+str(af.device.get_device())+", self.af_device_id: "+str(self.af_device_id)
-            
+        if use_gpu:
+            af.device.set_device(self.rank % af.get_device_count())
+            self.af_device_id = af.device.get_device()
+#            print "rank: "+str(self.rank)+", af.device.get_device(): "+str(af.device.get_device())+", self.af_device_id: "+str(self.af_device_id)
         
         kCheckpoint = 0 # 0 = no checkpoint
         
@@ -69,7 +74,7 @@ class ToeplitzFactorizor:
         # Initialize and save array which stores the final Cholesky factor.
         if self.rank==0:
             if not os.path.exists("results/{0}".format(folder + "_uc.npy")):
-                uc = np.zeros((m*n,1), dtype=complex)
+                uc = np.zeros((m*n,1), dtype='complex64')
                 np.save("results/{0}".format(folder + "_uc.npy"), uc)
                 
         # Ensure that files and directories are created before the rest of the nodes continue.
@@ -90,7 +95,7 @@ class ToeplitzFactorizor:
         else:
             if rank >= self.n:
                 m = self.m
-                b.createA(np.zeros((m,m), complex)) # Assigns A1 and A2 for current instance of Block.
+                b.createA(np.zeros((m,m), 'complex64')) # Assigns A1 and A2 for current instance of Block.
                 
             else:
                 T = np.load("processedData/{0}/{1}.npy".format(folder,rank))
@@ -187,23 +192,23 @@ class ToeplitzFactorizor:
         n = self.n
         m = self.m
         pad = self.pad
-        A1 = np.zeros((m, m), complex)
-        A2 = np.zeros((m, m), complex)
+        A1 = np.zeros((m, m), 'complex64')
+        A2 = np.zeros((m, m), 'complex64')
         
         # The root rank will compute the cholesky decomposition
         if self.blocks.hasRank(0):
             c = cholesky(self.blocks.getBlock(0).getT())
             c = np.conj(c)
         else:
-            c = np.empty((m,m),complex)
+            c = np.empty((m,m),'complex64')
             
         self.comm.Bcast(c, root=0)
 
         for b in self.blocks:
             if b.rank < self.n:
-#                b.createA(ztrsm(alpha=1.0, a=c, b=b.getT().T, lower=1).T)
-                b.createA(ztrtrs(a=c, b=b.getT().T, lower=1)[0].T)
-            
+#                b.createA(ctrsm(alpha=1.0, a=c, b=b.getT().T, lower=1).T)
+                b.createA(ctrtrs(a=c, b=b.getT().T, lower=1)[0].T)
+                
         # We are done with T.
         for b in self.blocks:
             b.deleteT()
@@ -234,7 +239,7 @@ class ToeplitzFactorizor:
     def __block_reduc(self, s1, e1, s2, e2, m, p, method, k):
         n = self.n
        
-        X2_list = np.zeros((m, m+1), complex)
+        X2_list = np.zeros((m, m+1), 'complex64')
         for sb1 in range (0, m, p):
             
             for b in self.blocks:
@@ -249,11 +254,11 @@ class ToeplitzFactorizor:
             u2 = eb2
             p_eff = min(p, m - sb1)
             
-            temp =  np.zeros((p_eff, m+1), complex)
+            temp =  np.zeros((p_eff, m+1), 'complex64')
             if method == WY1 or method == WY2:
-                S = np.array([np.zeros((m,p)),np.zeros((m,p))], complex)
+                S = np.array([np.zeros((m,p)),np.zeros((m,p))], 'complex64')
             elif method == YTY1 or YTY2:
-                S = np.zeros((p, p), complex)
+                S = np.zeros((p, p), 'complex64')
             
             
             for j in range(0, p_eff):
@@ -282,7 +287,7 @@ class ToeplitzFactorizor:
                 self.__new_block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, m, p_eff)
             X2_list[sb1:sb1+p_eff,:] = temp
         
-        b.createTemp(np.zeros((m, m+1), complex))
+        b.createTemp(np.zeros((m, m+1), 'complex64'))
         b.setTemp(X2_list)
         
         if b.getCond()[0]:
@@ -309,7 +314,7 @@ class ToeplitzFactorizor:
             XX2 = temp2[:,:m]
             beta = temp2[-1,-1]
             if method == YTY1 or YTY2:
-                S = np.zeros((p, p), complex)
+                S = np.zeros((p, p), 'complex64')
             S = self.__aggregate(S, XX2, beta, m, j, p_eff, method)
             self.__set_curr_gen(s2, n) # Updates work
             self.__block_update(XX2, sb1, eb1, u1, e1, s2,  sb2, eb2, u2, e2, S, method)
@@ -323,15 +328,18 @@ class ToeplitzFactorizor:
                 s = u1
                 A2 = b.getA2()
                 if s != m:
-#                    B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+#                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                     
-                    a_af = af.interop.np_to_af_array(A2[s:,:m])
-                    b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
-                    B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
-                    B2 = np.array(B2_af,order='C')# For some reason, not specifying C-ordering causes underflow error.
-                    
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        a_af = af.interop.np_to_af_array(A2[s:,:m])
+                        b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
+                        B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
+                        B2 = np.array(B2_af,order='C')
+                    else:
+                        B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 else:
-                    B2 = np.array([])
+                    B2 = np.array([],'complex64')
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 del A2
                 
@@ -341,42 +349,46 @@ class ToeplitzFactorizor:
                 A1 = b.getA1()
                 B1 = A1[s:, sb1:eb1]
                 
-                B2 = np.empty((m - s, p_eff), complex)
+                B2 = np.empty((m - s, p_eff), 'complex64')
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
-#                    M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
-#                    M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
-
-                    A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
-                    B_af = af.np_to_af_array(M.T)
-                    X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
-                    M = np.array(X_af).T
-
+#                    M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                    M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+                    
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
+                        B_af = af.np_to_af_array(M.T)
+                        X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
+                        M = np.array(X_af).T
+                    else:
+                        M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+                
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
                 del A1   
     
             if b.rank == s2: # rank s2=k receives from rank 0.
                 s = u1
-                M = np.empty((m - s, p_eff), complex)
+                M = np.empty((m - s, p_eff), 'complex64')
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 if s != m: # if selection is nonempty
                     A2 = b.getA2()
+#                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
                     
-                    a_af = af.interop.np_to_af_array(A2[s:,:m])
-                    b_af = af.interop.np_to_af_array(M)
-                    c_af = af.interop.np_to_af_array(X2)
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        a_af = af.interop.np_to_af_array(A2[s:,:m])
+                        b_af = af.interop.np_to_af_array(M)
+                        c_af = af.interop.np_to_af_array(X2)
+                        a_af = a_af + af.matmul(b_af, c_af)
+                        A2[s:, :m] = np.array(a_af)
+                    else:
+                        A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T
                     
-                    a_af = a_af + af.matmul(b_af, c_af)
-                    A2[s:, :m] = np.array(a_af)
-
-#                    A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
-
-#                    print np.allclose(A2[s:, :m], A2_2)
-
                     del A2 
         return 
     
@@ -390,12 +402,16 @@ class ToeplitzFactorizor:
                 if b.rank == s2:
                     continue
                 A2 = b.getA2()
-#                B2 = zgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+#                B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 
-                a_af = af.interop.np_to_af_array(A2[s:,:m])
-                b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
-                B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
-                B2 = np.array(B2_af,order='C')# For some reason, not specifying C-ordering causes underflow error.
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[s:,:m])
+                    b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
+                    B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
+                    B2 = np.array(B2_af,order='C')
+                else:
+                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 
@@ -410,39 +426,47 @@ class ToeplitzFactorizor:
                 
                 A1 = b.getA1()
                 B1 = A1[s:, sb1:eb1]
-                B2 = np.empty((m - s, p_eff), complex)
+                B2 = np.empty((m - s, p_eff), 'complex64')
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-#                M = ztrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
-#                M = ztrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
-                
-                A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
-                B_af = af.np_to_af_array(M.T)
-                X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
-                M = np.array(X_af).T
+#                M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+
+                if use_gpu:
+                    A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
+                    B_af = af.np_to_af_array(M.T)
+                    X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
+                    M = np.array(X_af).T
+                else:
+                    M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
-                del A1   
+                del A1
+                
             for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from (rank-k)
                 if b.work2 == None: 
                     continue
                 s = 0 
                 if b.rank == s2:
                     continue
-                M = np.empty((m - s, p_eff), complex)
+                M = np.empty((m - s, p_eff), 'complex64')
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 A2 = b.getA2()
-#                A2[s:, :m] = zgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
-                
-                a_af = af.interop.np_to_af_array(A2[s:,:m])
-                b_af = af.interop.np_to_af_array(M)
-                c_af = af.interop.np_to_af_array(X2)
-                
-                a_af = a_af + af.matmul(b_af, c_af)
-                A2[s:, :m] = np.array(a_af)
+#                A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[s:,:m])
+                    b_af = af.interop.np_to_af_array(M)
+                    c_af = af.interop.np_to_af_array(X2)
+                    a_af = a_af + af.matmul(b_af, c_af)
+                    A2[s:, :m] = np.array(a_af)
+                else:
+                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+
                 del A2 
             return 
         
@@ -462,18 +486,24 @@ class ToeplitzFactorizor:
         elif method == YTY2:
             return yty2()
         
-    def __aggregate(self, S, X2, beta, m, j, p_eff, method):
+    def __aggregate(self,S,  X2, beta, m, j, p_eff, method):
 #        invT = S
-#        invT[:p_eff,:p_eff] = zherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff,complex).T, trans=2, lower=1, overwrite_c=0).T
-        
-        a_af = af.interop.np_to_af_array(X2[:p_eff, :m])
-        b_af = af.data.upper(af.blas.matmul(a_af, a_af, rhs_opts=af.MATPROP.CTRANS)) - af.data.identity(p_eff, p_eff, dtype=af.Dtype.c64)
-        
-        for jj in range(p_eff):
-            b_af[jj,jj] *= 0.5
+#        invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, 'complex64').T, trans=2, lower=1, overwrite_c=0).T
+#        for jj in range(p_eff):
 #            invT[jj,jj] = (invT[jj,jj])/2.
         
-        invT = np.array(b_af)
+        # Tested on Tower (no errors; correct solution).
+        if use_gpu:
+            a_af = af.interop.np_to_af_array(X2[:p_eff, :m])
+            b_af = af.data.upper(af.blas.matmul(a_af, a_af, rhs_opts=af.MATPROP.CTRANS)) - af.data.identity(p_eff, p_eff, dtype=af.Dtype.c32)
+            for jj in range(p_eff):
+                b_af[jj,jj] *= 0.5
+            invT = np.array(b_af)
+        else:
+            invT = S
+            invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, 'complex64').T, trans=2, lower=1, overwrite_c=0).T
+            for jj in range(p_eff):
+                invT[jj,jj] = (invT[jj,jj])/2.
         
         return invT
         
@@ -495,12 +525,16 @@ class ToeplitzFactorizor:
             if b.work2 == None: 
                 continue
 #            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j. Can't improve with zgemv
-            a_af = af.interop.np_to_af_array(b.getA2())
-            b_af = af.interop.np_to_af_array(np.conj(X2.T))
+
+            # Tested on Tower (no errors, correct solution).
+            if use_gpu:
+                a_af = af.interop.np_to_af_array(b.getA2())
+                b_af = af.interop.np_to_af_array(np.conj(X2.T))
+                B1_af = af.blas.matmul(a_af,b_af)
+                B1 = np.array(B1_af)
+            else:
+                B1 = b.getA2().dot(np.conj(X2.T))
             
-            B1_af = af.blas.matmul(a_af,b_af)
-            B1 = np.array(B1_af)
-                       
             start = 0
             end = m
             if b.rank == s2:
@@ -520,7 +554,7 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e1/m:
                 end = e1 % m or m
-            B1 = np.empty(end-start, complex) # size decreases with j.
+            B1 = np.empty(end-start, 'complex64') # size decreases with j.
             
             self.comm.Recv(B1, source=b.getWork1()%self.size, tag=4*num + b.rank)
             A1 = b.getA1()
@@ -541,41 +575,43 @@ class ToeplitzFactorizor:
                 start = u
             if b.rank == e2/m :
                 end = e2 % m or m
-            v = np.empty(end-start,complex) # size decreases with j.
+            v = np.empty(end-start, 'complex64') # size decreases with j.
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             if start != end:
                 A2 = b.getA2()
-                
-                a_af = af.interop.np_to_af_array(A2[start:end,:])
-                b_af = af.interop.np_to_af_array(v)
-                c_af = af.data.moddims(af.interop.np_to_af_array(X2), 1, d1=X2.shape[0])
-                a_af = a_af - beta*af.blas.matmul(b_af,c_af)
-                
-                A2[start:end,:] = np.array(a_af)
-                
-#                zgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
-                
+#                cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[start:end,:])
+                    b_af = af.interop.np_to_af_array(beta*v)
+                    c_af = af.data.moddims(af.interop.np_to_af_array(X2), 1, d1=X2.shape[0])
+                    a_af = a_af - af.blas.matmul(b_af,c_af)
+                    A2[start:end,:] = np.array(a_af)
+                else:
+                    cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)
+                    
                 del A2
         
     def __house_vec(self, j, s2, j_count, b):
         isZero = np.array([0])
         b.setFalse(isZero)
         
-        X2 = np.zeros(self.m, complex)
-        data = np.zeros(self.m+1, complex)
-        beta = np.zeros(1, complex)
-        z = np.zeros(1, complex)
-        sigma = np.zeros(1, complex)
+        X2 = np.zeros(self.m, 'complex64')
+        data = np.zeros(self.m+1, 'complex64')
+        beta = np.zeros(1, 'complex64')
+        z = np.zeros(1, 'complex64')
+        sigma = np.zeros(1, 'complex64')
         blocks = self.blocks
         n = self.n
         num = self.numOfBlocks
         
         if self.rank == s2:
             A2 = blocks.getBlock(s2).getA2()
-            if np.all(np.abs(A2[j, :]) < 1e-50): # This number was set to 1e-13, which led to highly inaccurate solutions when called. 
+            if np.all(np.abs(A2[j, :]) < 1e-32): # This number was set to 1e-13, which led to highly inaccurate solutions when called. 
                 isZero=np.array([1])
                 b.setTrue(isZero)
-            self.comm.Bcast(b.getCond(), root=s2%self.size) # rank s2=k broadcasts to all ranks. This call is conditional. I have not seen it called.
+            self.comm.Bcast(b.getCond(), root=s2%self.size)
             del A2
         else:
             self.comm.Bcast(b.getCond(), root=s2%self.size)
@@ -589,15 +625,13 @@ class ToeplitzFactorizor:
         
         if self.rank == s2: # rank s2=k sends to and receives from rank 0.
             A2 = blocks.getBlock(s2).getA2()
-            sigma[0] = dznrm2(A2.T[:, j])**2
+            sigma[0] = scnrm2(A2.T[:, j])**2
             
             self.comm.Send(sigma, dest=0, tag=2*num + s2)
-            
             self.comm.Recv(z, source=0, tag=3*num + s2)
             self.comm.Recv(beta, source=0, tag=4*num + s2)
 
             X2 = A2[j,:]/z
-            
             A2[j, :] = X2
             
             data[:self.m] = X2
@@ -611,16 +645,18 @@ class ToeplitzFactorizor:
             self.comm.Recv(sigma, source=s2%self.size, tag=2*num + s2)
             alpha = (A1[j,j]**2 - sigma)**0.5
             x = sigma/A1[j,j]**2
-            if (np.absolute(x) < 1e-12) and (A1.real[j,j] < 0):
-                z = A1[j,j]*x/2
+            if (np.absolute(x) < 1e-6) and (A1.real[j,j] < 0):
+#                print "Using expansion to calculate z."
+                z[0] = A1[j,j]*x/2
                 A1[j,j] = -alpha[0]
             else:
-                z = A1[j, j]+alpha[0]
+                z[0] = A1[j, j]+alpha[0]
                 A1[j,j] = -alpha[0]
-            self.comm.Send(z, dest=s2%self.size, tag=3*num + s2)
-            beta = 2*z*z/(-sigma + z*z)           
-            self.comm.Send(beta, dest=s2%self.size, tag=4*num + s2)
             
+            beta[0] = (2./(1.-sigma/z**2))
+
+            self.comm.Send(z, dest=s2%self.size, tag=3*num + s2)
+            self.comm.Send(beta, dest=s2%self.size, tag=4*num + s2)
             self.comm.Recv(data, source=s2%self.size, tag=5*num + s2)
             del A1
 

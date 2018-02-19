@@ -9,7 +9,7 @@ B = np.load(B_dir)
 
 print "array_equal()       : "+str(np.array_equal(A,B))
 rtol=1e-05 # default rtol=1e-05
-atol=1e-8  # default atol=1e-08
+atol=1e-06  # default atol=1e-08
 print "allclose()          : "+str(np.allclose(A, B, rtol=rtol, atol=atol))+" (rtol: "+str(rtol)+", atol: "+str(atol)+")"
 "rtol: "+str(rtol)+", atol: "+str(atol)
 print "max(abs(real(A-B))) : "+str(np.max(np.absolute(np.real(A-B))))
