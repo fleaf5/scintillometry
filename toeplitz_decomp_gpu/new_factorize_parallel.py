@@ -473,8 +473,6 @@ class ToeplitzFactorizor:
             b_af[jj,jj] *= 0.5
 #            invT[jj,jj] = (invT[jj,jj])/2.
         
-#        invT[:p_eff, :p_eff] = np.array(b_af)
-        
         invT = np.array(b_af)
         
         return invT

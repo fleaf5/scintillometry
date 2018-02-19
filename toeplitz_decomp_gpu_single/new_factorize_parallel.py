@@ -1,6 +1,7 @@
 import numpy as np
 #from scipy.linalg.blas import zgeru, zherk, zgemm, ztrsm, dznrm2
 from scipy.linalg.blas import cgeru, cherk, cgemm, ctrsm, scnrm2
+from scipy.linalg.lapack import ctrtrs
 from numpy.linalg import cholesky
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -14,8 +15,11 @@ from GeneratorBlocks import Blocks
 from GeneratorBlock import Block
 
 from time import time
+import arrayfire as af
 
 np.seterr(all='raise')
+
+use_gpu = True
 
 MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
@@ -37,6 +41,12 @@ class ToeplitzFactorizor:
         
         self.detailedSave = detailedSave
         self.numOfBlocks = n*(1 + pad)
+        
+        # Associate a GPU with each MPI process.
+        if use_gpu:
+            af.device.set_device(self.rank % af.get_device_count())
+            self.af_device_id = af.device.get_device()
+            print "rank: "+str(self.rank)+", af.device.get_device(): "+str(af.device.get_device())+", self.af_device_id: "+str(self.af_device_id)
         
         kCheckpoint = 0 # 0 = no checkpoint
         
@@ -318,7 +328,16 @@ class ToeplitzFactorizor:
                 s = u1
                 A2 = b.getA2()
                 if s != m:
-                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+#                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                    
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        a_af = af.interop.np_to_af_array(A2[s:,:m])
+                        b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
+                        B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
+                        B2 = np.array(B2_af,order='C')
+                    else:
+                        B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 else:
                     B2 = np.array([],'complex64')
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
@@ -335,7 +354,17 @@ class ToeplitzFactorizor:
                 M = B1 - B2
                 
                 if s != m: # if M is nonempty
-                    M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                    M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                    M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+                    
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
+                        B_af = af.np_to_af_array(M.T)
+                        X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
+                        M = np.array(X_af).T
+                    else:
+                        M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
@@ -348,7 +377,18 @@ class ToeplitzFactorizor:
                 
                 if s != m: # if selection is nonempty
                     A2 = b.getA2()
-                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+#                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+                    
+                    # Tested on Tower (no errors; correct solution).
+                    if use_gpu:
+                        a_af = af.interop.np_to_af_array(A2[s:,:m])
+                        b_af = af.interop.np_to_af_array(M)
+                        c_af = af.interop.np_to_af_array(X2)
+                        a_af = a_af + af.matmul(b_af, c_af)
+                        A2[s:, :m] = np.array(a_af)
+                    else:
+                        A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T
+                    
                     del A2 
         return 
     
@@ -362,7 +402,16 @@ class ToeplitzFactorizor:
                 if b.rank == s2:
                     continue
                 A2 = b.getA2()
-                B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+#                B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
+                
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[s:,:m])
+                    b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
+                    B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
+                    B2 = np.array(B2_af,order='C')
+                else:
+                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 
                 self.comm.Send(B2, dest=b.getWork2()%self.size, tag=3*num + b.getWork2())
                 
@@ -381,11 +430,21 @@ class ToeplitzFactorizor:
                 self.comm.Recv(B2, source=b.getWork1()%self.size, tag=3*num + b.rank)  
                 
                 M = B1 - B2
-                M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
+#                M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
+
+                if use_gpu:
+                    A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
+                    B_af = af.np_to_af_array(M.T)
+                    X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
+                    M = np.array(X_af).T
+                else:
+                    M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                 
                 self.comm.Send(M, dest=b.getWork1()%self.size, tag=4*num + b.rank)
                 A1[s:, sb1:eb1] = A1[s:, sb1:eb1] + M
-                del A1   
+                del A1
+                
             for b in self.blocks: # ranks k+1, ..., min(n-1+k, 2n-1) receive from (rank-k)
                 if b.work2 == None: 
                     continue
@@ -396,7 +455,18 @@ class ToeplitzFactorizor:
                 self.comm.Recv(M, source=b.getWork2()%self.size, tag=4*num + b.getWork2())
                 
                 A2 = b.getA2()
-                A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+#                A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[s:,:m])
+                    b_af = af.interop.np_to_af_array(M)
+                    c_af = af.interop.np_to_af_array(X2)
+                    a_af = a_af + af.matmul(b_af, c_af)
+                    A2[s:, :m] = np.array(a_af)
+                else:
+                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
+
                 del A2 
             return 
         
@@ -417,12 +487,23 @@ class ToeplitzFactorizor:
             return yty2()
         
     def __aggregate(self,S,  X2, beta, m, j, p_eff, method):
-        invT = S
+#        invT = S
+#        invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, 'complex64').T, trans=2, lower=1, overwrite_c=0).T
+#        for jj in range(p_eff):
+#            invT[jj,jj] = (invT[jj,jj])/2.
         
-        invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, 'complex64').T, trans=2, lower=1, overwrite_c=0).T
-        
-        for jj in range(p_eff):
-            invT[jj,jj] = (invT[jj,jj])/2.
+        # Tested on Tower (no errors; correct solution).
+        if use_gpu:
+            a_af = af.interop.np_to_af_array(X2[:p_eff, :m])
+            b_af = af.data.upper(af.blas.matmul(a_af, a_af, rhs_opts=af.MATPROP.CTRANS)) - af.data.identity(p_eff, p_eff, dtype=af.Dtype.c32)
+            for jj in range(p_eff):
+                b_af[jj,jj] *= 0.5
+            invT = np.array(b_af)
+        else:
+            invT = S
+            invT[:p_eff,:p_eff] = cherk(1.0, X2[:p_eff, :m].T, beta=-1.0, c=np.identity(p_eff, 'complex64').T, trans=2, lower=1, overwrite_c=0).T
+            for jj in range(p_eff):
+                invT[jj,jj] = (invT[jj,jj])/2.
         
         return invT
         
@@ -443,7 +524,16 @@ class ToeplitzFactorizor:
         for b in self.blocks: # rank s2=k sends to rank 0.
             if b.work2 == None: 
                 continue
-            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j. Can't improve with zgemv
+#            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j. Can't improve with zgemv
+
+            # Tested on Tower (no errors, correct solution).
+            if use_gpu:
+                a_af = af.interop.np_to_af_array(b.getA2())
+                b_af = af.interop.np_to_af_array(np.conj(X2.T))
+                B1_af = af.blas.matmul(a_af,b_af)
+                B1 = np.array(B1_af)
+            else:
+                B1 = b.getA2().dot(np.conj(X2.T))
             
             start = 0
             end = m
@@ -489,7 +579,18 @@ class ToeplitzFactorizor:
             self.comm.Recv(v, source=b.getWork2()%self.size, tag=5*num + b.rank)
             if start != end:
                 A2 = b.getA2()
-                cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+#                cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
+
+                # Tested on Tower (no errors; correct solution).
+                if use_gpu:
+                    a_af = af.interop.np_to_af_array(A2[start:end,:])
+                    b_af = af.interop.np_to_af_array(beta*v)
+                    c_af = af.data.moddims(af.interop.np_to_af_array(X2), 1, d1=X2.shape[0])
+                    a_af = a_af - af.blas.matmul(b_af,c_af)
+                    A2[start:end,:] = np.array(a_af)
+                else:
+                    cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)
+                    
                 del A2
         
     def __house_vec(self, j, s2, j_count, b):
@@ -551,8 +652,6 @@ class ToeplitzFactorizor:
             else:
                 z[0] = A1[j, j]+alpha[0]
                 A1[j,j] = -alpha[0]
-            
-            print "z: "+str(z)
             
             beta[0] = (2./(1.-sigma/z**2))
 
