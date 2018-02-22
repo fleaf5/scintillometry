@@ -18,7 +18,8 @@ import arrayfire as af
 
 np.seterr(all='raise')
 
-use_gpu = True
+use_gpu_Om2 = True # Perform O(m^2) matrix operations on GPU. 
+use_gpu_Om3 = True # Perform O(m^3) matrix operations on GPU.
 
 MAXTIME = int(60*60*23.5) #23.5 hours in seconds
 timePerLoop = []
@@ -42,7 +43,7 @@ class ToeplitzFactorizor:
         self.numOfBlocks = n*(1 + pad)
         
         # Associate a GPU with each MPI process.
-        if use_gpu:
+        if (use_gpu_Om2 or use_gpu_Om3):
             af.device.set_device(self.rank % af.get_device_count())
             self.af_device_id = af.device.get_device()
 #            print "rank: "+str(self.rank)+", af.device.get_device(): "+str(af.device.get_device())+", self.af_device_id: "+str(self.af_device_id)
@@ -331,7 +332,7 @@ class ToeplitzFactorizor:
 #                    B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                     
                     # Tested on Tower (no errors; correct solution).
-                    if use_gpu:
+                    if use_gpu_Om3:
                         a_af = af.interop.np_to_af_array(A2[s:,:m])
                         b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
                         B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
@@ -358,7 +359,7 @@ class ToeplitzFactorizor:
 #                    M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
                     
                     # Tested on Tower (no errors; correct solution).
-                    if use_gpu:
+                    if use_gpu_Om3:
                         A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
                         B_af = af.np_to_af_array(M.T)
                         X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
@@ -380,7 +381,7 @@ class ToeplitzFactorizor:
 #                    A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
                     
                     # Tested on Tower (no errors; correct solution).
-                    if use_gpu:
+                    if use_gpu_Om3:
                         a_af = af.interop.np_to_af_array(A2[s:,:m])
                         b_af = af.interop.np_to_af_array(M)
                         c_af = af.interop.np_to_af_array(X2)
@@ -405,7 +406,7 @@ class ToeplitzFactorizor:
 #                B2 = cgemm(alpha=1.0, a=X2.T[:m, :p_eff], b=A2.T[:m, s:], trans_a=2).T
                 
                 # Tested on Tower (no errors; correct solution).
-                if use_gpu:
+                if use_gpu_Om3:
                     a_af = af.interop.np_to_af_array(A2[s:,:m])
                     b_af = af.interop.np_to_af_array(X2[:p_eff,:m])
                     B2_af = af.blas.matmul(a_af,b_af,rhs_opts=af.MATPROP.CTRANS)
@@ -433,7 +434,7 @@ class ToeplitzFactorizor:
 #                M = ctrsm(alpha=1.0, a=invT.T[:p_eff,:p_eff], b=M.T, lower=1).T
 #                M = ctrtrs(a=invT.T[:p_eff,:p_eff], b=M.T, lower=1)[0].T
 
-                if use_gpu:
+                if use_gpu_Om3:
                     A_af = af.np_to_af_array(invT[:p_eff,:p_eff].T)
                     B_af = af.np_to_af_array(M.T)
                     X_af = af.lapack.solve(A=A_af, B=B_af,options=af.MATPROP.LOWER)
@@ -458,7 +459,7 @@ class ToeplitzFactorizor:
 #                A2[s:, :m] = cgemm(alpha=1.0, a=X2.T, b=M.T, beta=1.0, c=A2.T[:m, s:]).T # Very slight improvement over numpy.dot()
 
                 # Tested on Tower (no errors; correct solution).
-                if use_gpu:
+                if use_gpu_Om3:
                     a_af = af.interop.np_to_af_array(A2[s:,:m])
                     b_af = af.interop.np_to_af_array(M)
                     c_af = af.interop.np_to_af_array(X2)
@@ -493,7 +494,7 @@ class ToeplitzFactorizor:
 #            invT[jj,jj] = (invT[jj,jj])/2.
         
         # Tested on Tower (no errors; correct solution).
-        if use_gpu:
+        if use_gpu_Om3:
             a_af = af.interop.np_to_af_array(X2[:p_eff, :m])
             b_af = af.data.upper(af.blas.matmul(a_af, a_af, rhs_opts=af.MATPROP.CTRANS)) - af.data.identity(p_eff, p_eff, dtype=af.Dtype.c32)
             for jj in range(p_eff):
@@ -527,7 +528,7 @@ class ToeplitzFactorizor:
 #            B1 = b.getA2().dot(np.conj(X2.T)) # sizes independent of j. Can't improve with zgemv
 
             # Tested on Tower (no errors, correct solution).
-            if use_gpu:
+            if use_gpu_Om2:
                 a_af = af.interop.np_to_af_array(b.getA2())
                 b_af = af.interop.np_to_af_array(np.conj(X2.T))
                 B1_af = af.blas.matmul(a_af,b_af)
@@ -582,7 +583,7 @@ class ToeplitzFactorizor:
 #                cgeru(-beta, X2, v, incx=1, incy=1, a=A2.T[:,start:end], overwrite_x=0, overwrite_y=0, overwrite_a=1)# size of v decreases with j.
 
                 # Tested on Tower (no errors; correct solution).
-                if use_gpu:
+                if use_gpu_Om2:
                     a_af = af.interop.np_to_af_array(A2[start:end,:])
                     b_af = af.interop.np_to_af_array(beta*v)
                     c_af = af.data.moddims(af.interop.np_to_af_array(X2), 1, d1=X2.shape[0])

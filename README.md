@@ -1,10 +1,12 @@
 # toeplitz_decomposition
 Applies to code in Steve's GitHub. Written by Aladdin, Visal, Steve. 
 
+This repository contains two versions of the code: the folder `toeplitz_decomp` contains a double precision, CPU-only version of the code; the folder `toeplitz_decomp_gpu` contains a single-precision version of code which can be run on the CPU only, or can utilize one or more GPUs. 
+
 ### Extracting Data from your binned file ###
 To extract binned data, use `extract_realData2.py`, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
-Extract data on CITA (or personal computer for small *n*, *m*), then move the extracted data to SciNet/BGQ.
+Extract data on CITA or personal computer, then move the extracted data to SciNet/BGQ.
 
 To extract, use the format:
 ```
