@@ -1,12 +1,12 @@
 # toeplitz_decomposition
 Applies to code in Steve's GitHub. Written by Aladdin, Visal, Steve. 
 
-This repository contains two versions of the code: the folder `toeplitz_decomp` contains a double precision, CPU-only version of the code; the folder `toeplitz_decomp_gpu` contains a single-precision version of code which can be run on the CPU only, or can utilize one or more GPUs. 
+This repository contains two versions of the code: the folder `toeplitz_decomp` contains a double precision, CPU-only version of the code; the folder `toeplitz_decomp_gpu` contains a single-precision version of code which can be run on CPUs only, or can utilize one or more GPUs. 
 
 ### Extracting Data from your binned file ###
 To extract binned data, use `extract_realData2.py`, which requires Python 2.7, NumPy, SciPy, and Matplotlib. 
 
-Extract data on CITA or personal computer, then move the extracted data to SciNet/BGQ.
+Extract data on a CITA machine or your personal computer, then move the extracted data to the system you wish to run the deconvolution routine on.
 
 To extract, use the format:
 ```
@@ -24,7 +24,7 @@ This will create the directory `./processedData/gate0_numblock_4_meff_16_offsetn
 
 Note that if a directory with this name already exists, the data therein will be overwritten without warning when `extract_realData2.py` executes. 
 
-The extraction routine currently assumes that the input data is of type float32. If your input data is float64 or other, modify the import step (e.g. change 'float32' to 'float64' in the np.memmap call).
+The extraction routine assumes that the input data is of type float32, binary format. If your input data is not a float32 binary file, modify the import step (e.g. change 'float32' to 'float64' in the np.memmap call; or if your data is a NumPy array, change the np.memmap call to np.load).
 
 The format of the directory name is: `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)`
 
@@ -32,13 +32,9 @@ Note that the value of *m* is doubled in the directory name, but you must use th
 
 Inside this folder, there will be a `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_toep.npy` file. There will also be *n* npy files. They each represent a block of the Toeplitz matrix. Only the files within this folder are required to perform the decomposition.
 
-There will also be a dat file `gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm).dat`. This serves an unknown purpose, and the decomposition can be performed without it.
+### Performing decomposition on BGQ (CPU-only) ###
 
-The current version of the code generates a number of png files, and a file `data.tar.gz`. These serve unknown purposes, and the decomposition can be performed without them.
-
-### Performing decomposition on BGQ ###
-
-The decomposition can be performed locally, on SciNet, or on BGQ. I only include instructions for the BGQ here. 
+The decomposition can be performed locally, on SciNet, BGQ, or the SOSCIP GPU cluster. The following instructions are for running the double precision, CPU-only version of the code on the BGQ.
 
 Please refer to SciNet [BGQ wiki](https://wiki.scinet.utoronto.ca/wiki/index.php/BGQ) before continuing.
 
@@ -80,19 +76,19 @@ tar -zxvf processedData.tar.gz
 cd ..
 ```
 
-8. Write/edit a job script as per the instructions below.
+8. Write/edit a job script per the instructions below.
 
 ##### Submitting small jobs (using debugjob) #####
-9. Copy the template job script `smalljob_template.sh` to a new name:
+9. Copy the template job script `jobscript_bgq_debugjob.sh` to a new name:
 ```
-cp smalljob_template.sh smalljob_name.sh
+cp jobscript_bgq_debugjob.sh smalljob_name.sh
 ```
 
 10. Edit the copy `smalljob_name.sh` (e.g. with emacs, vi).
 * *method* is the decomposition scheme. yty2 is the method used in Nilou's report.
 * Set parameters *offsetn*, *offsetm*, *n* and *m* to the values that were used in `extract_realData2.py`. 
 * *p* is an integer parameter used in the decomposition (function currently unclear). It can be set to 2*m*, *m*, *m*/2, *m*/4. Fastest results reportedly occur for *p = m*/2 or *p = m*/4. 
-* *pad* is a Boolean value which specifies whether or not to use padding (1 or 0; function currently unclear).
+* *pad* is a Boolean value which specifies whether or not to use padding (1 or 0).
 
 * *bg_size* is the number of nodes in the block. This is automatically set to 64 in a debugjob.
 * *NP* is the number of MPI processes. **It must be set to 2*n*.**
@@ -119,18 +115,18 @@ The run is timed using the `time` function. Execution consists of 2*n* - 1 loops
 
 12. Move results from scratch directory to desired location.
 
-Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`. An empty directory is also created which serves an unkown purpose.
+Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`.
 
 ##### Submitting large jobs (using llsubmit) #####
 
-9. Copy the template job script `largejob_template.sh` to a new name:
+9. Copy the template job script `jobscript_bgq_large.sh` to a new name:
 ```
-cp largejob_template.sh largejob_name.sh
+cp jobscript_bgq_large.sh largejob_name.sh
 ```
 
 10. Edit the copy `largejob_name.sh`.
 * Follow the same instructions as for small jobs.
-* For batch jobs, the number of nodes must be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
+* The number of nodes must be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
 * Set the directory of the source code *sourcedir*.
 
 11. Submit the job:
@@ -142,13 +138,38 @@ See SciNet [BGQ wiki](https://wiki.scinet.utoronto.ca/wiki/index.php/BGQ) for in
 
 12. Move results from scratch directory to desired location.
 
-Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`. An empty directory is also created which serves an unkown purpose.
+Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`.
 
+### Performing decomposition on the SOSCIP GPU cluster ###
+Please refer to SciNet [SOSCIP GPU wiki](https://wiki.scinet.utoronto.ca/wiki/index.php/SOSCIP_GPU) before continuing.
 
-### Plotting results ###
+To run the GPU version of the code on the SOSCIP GPU cluster, follow steps 1-8 for running the CPU-only version of the code on the BGQ, instead using the scripts in the `toeplitz_decomp_gpu` folder.
 
-Visal says the module 'reconstruct' in toeplitz_scint.py can be used to plot results. I have not tested this. 
+9. Copy the template job script `jobscript_soscip_gpu.sh` to a new name:
+```
+cp jobscript_soscip_gpu.sh gpujob_name.sh
+```
 
-Visal used the program plot_simulated.py to plot results obtained from the decomposition alongside simulated results. This requires a separate calculation of simulated results. I have not tested this.
+10. Edit the copy `gpujob_name.sh` (e.g. with emacs, vi).
+* The parameters have the same meaning as in the BGQ debugjob job script described above.
+* *--nodes* specifies the number of compute nodes to. Each node has 160 CPU threads, and 4 GPUs. 
+* *--ntasks* specifies the number of MPI processes. This must be set to 2*n*.
+* *--time* specifies the wall clock limit.
+* *--gres=gpu:4* specifies to use 4 GPUs per node.
+* *PYTHON* specifies the copy of Python to be used. The default Python installation on the SOSCIP GPU cluster cannot run the GPU version of the code, as ArrayFire is not installed on it.
+* *SCRIPT* specifies the path of the Python script to run. 
 
-Aladdin's GitHub repository contains programs plot_simulated.py and plot_real.py, which are not in my repository. I have not tested these.
+11. To select whether or not to use the GPUs, set the parameters *use_gpu_Om2* and *use_gpu_Om3* in `new_factorize_parallel.py` to True or False. If *use_gpu_Om2* = True, all O(m^2) matrix operations will be performed on GPUs; if *use_gpu_Om3* = True, all O(m^3) matrix operations will be performed on GPUs. It appears that best performance is acheived when *use_gpu_Om2* = False, and *use_gpu_Om3* = True.
+
+12. Submit the job:
+```
+sbatch gpujob_name.sh
+```
+
+13. Move results from scratch directory to desired location.
+
+Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`.
+
+### Interpreting the output ###
+
+The file `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy` is a 1D NumPy array containing the flattened electric field in Fourier space. To convert this file to a 2D array, use the script `unflatten_E.py`. The correct way to reconstruct the electric field from the output of our deconvolution routine is unknown. `unflatten_E.py` gets us as close to the correct result as we know how to. 
