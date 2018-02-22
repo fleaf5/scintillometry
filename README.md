@@ -127,7 +127,7 @@ cp jobscript_bgq_large.sh largejob_name.sh
 10. Edit the copy `largejob_name.sh`.
 * Follow the same instructions as for small jobs.
 * The number of nodes must be specified. *bg_size* = 64, 128, 256, 512, 1024, 2048.
-* Set the directory of the source code *sourcedir*.
+* Set *sourcedir* to the directory of the source code.
 
 11. Submit the job:
 ```
@@ -152,14 +152,14 @@ cp jobscript_soscip_gpu.sh gpujob_name.sh
 
 10. Edit the copy `gpujob_name.sh` (e.g. with emacs, vi).
 * The parameters have the same meaning as in the BGQ debugjob job script described above.
-* *--nodes* specifies the number of compute nodes to. Each node has 160 CPU threads, and 4 GPUs. 
+* *--nodes* specifies the number of compute nodes to use. Each node has 2x10x8=160 CPU threads and 4 GPUs. 
 * *--ntasks* specifies the number of MPI processes. This must be set to 2*n*.
 * *--time* specifies the wall clock limit.
 * *--gres=gpu:4* specifies to use 4 GPUs per node.
 * *PYTHON* specifies the copy of Python to be used. The default Python installation on the SOSCIP GPU cluster cannot run the GPU version of the code, as ArrayFire is not installed on it.
 * *SCRIPT* specifies the path of the Python script to run. 
 
-11. To select whether or not to use the GPUs, set the parameters *use_gpu_Om2* and *use_gpu_Om3* in `new_factorize_parallel.py` to True or False. If *use_gpu_Om2* = True, all O(m^2) matrix operations will be performed on GPUs; if *use_gpu_Om3* = True, all O(m^3) matrix operations will be performed on GPUs. It appears that best performance is acheived when *use_gpu_Om2* = False, and *use_gpu_Om3* = True.
+11. To select whether or not to use the GPUs, set the parameters *use_gpu_Om2* and *use_gpu_Om3* in `new_factorize_parallel.py` to True or False. If *use_gpu_Om2* = True, all O(m^2) matrix operations will be performed on GPUs; if *use_gpu_Om3* = True, all O(m^3) matrix operations will be performed on GPUs. It appears that the best performance is acheived when *use_gpu_Om2* = False, and *use_gpu_Om3* = True.
 
 12. Submit the job:
 ```
