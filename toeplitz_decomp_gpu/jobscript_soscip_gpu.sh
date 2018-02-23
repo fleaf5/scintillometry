@@ -17,6 +17,8 @@ pad=1
 PYTHON=/home/a/aparamek/sufkes/anaconda2/bin/python2
 SCRIPT=/scratch/a/aparamek/sufkes/scintillometry/toeplitz_decomp_gpu/run_real_new.py
 
+echo "n ${n}, m ${m}, p ${p}"
+
 # Submit deconvolution job.
 cd $SLURM_SUBMIT_DIR
 time srun $PYTHON $SCRIPT $method $offsetn $offsetm $n $m $p $pad # number of tasks to run is specified above.
