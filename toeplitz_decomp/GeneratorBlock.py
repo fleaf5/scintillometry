@@ -60,6 +60,8 @@ class Block:
         uc = np.load(self.Name)
         m = self.A1.shape[0]
         try:
+#            temp = -np.conj(self.A1).T[0,:m/2]
+#            temp2 = -np.conj(self.A1).T[1:m/2+1,0][::-1]
             temp = -np.conj(self.A1).T[0,:m/2]
             temp2 = -np.conj(self.A1).T[1:m/2+1,0][::-1]
             #print temp[0]

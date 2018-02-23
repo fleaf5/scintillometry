@@ -171,5 +171,27 @@ sbatch gpujob_name.sh
 Results are stored in `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy`.
 
 ### Interpreting the output ###
+The file `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy` is a 1D NumPy array containing the flattened electric field in Fourier space. To convert this file to a 2D array, use the script `unflatten_E.py`. The syntax is:
 
-The file `./results/gate0_numblock_(n)_meff_(mx2)_offsetn_(offsetn)_offsetm_(offsetm)_uc.npy` is a 1D NumPy array containing the flattened electric field in Fourier space. To convert this file to a 2D array, use the script `unflatten_E.py`. The correct way to reconstruct the electric field from the output of our deconvolution routine is unknown. `unflatten_E.py` gets us as close to the correct result as we know how to. 
+```
+$ python unflatten_E.py offsetn offsetm n m
+```
+
+The correct way to reconstruct the electric field from the output of our deconvolution routine is unknown. The script `unflatten_E.py` gets close to the correct answer in simple cases. 
+
+### Current state of code ###
+Currently, our decomposition can correctly compute the Cholesky factor of a block Toeplitz matrix. To see that this is true, set the option *build_Inm* to True in `extract_realData2.py`. When this option is True, the extraction routine will extract as normal, but will also construct the entire block Toeplitz matrix *Inm*, and save it as `L_input.npy` in the appropriate result folder. The extraction routine will also directly compute the Cholesky factor of the full block Toeplitz matrix Inm. Since the matrix Inm and its Cholesky factor are of size 4*nm* x 4*nm*, this is only possible for small *n*, *m*. 
+
+To reconstruct the entire Cholesky factor using our code, set the option *detailedSave* to True in `run_real_new.py`, then run the decomposition routine as normal. When this option is True, the decomposition routine will save full blocks of the Cholesky factor. Note that, in general, *detailedSave* should be False, as saving entire blocks slows down the code and consumes more disk space. After the decomposition routine completes, the full Cholesky factor can be reconstructed from the blocks using the script `resconstruct_L.py`. The syntax is
+
+```
+$ python reconstruct_L.py offsetn offsetm n m
+```
+This will save the our code's calculation of the Cholesky factor as `L_result.npy` in the appropriate result folder. After these steps, you can compare the files `L_input.npy` and `L_result.npy` to check that our code computed the correct Cholesky factor. 
+
+While our code can correctly compute the Cholesky factor, we do not have a proven method to perform a deconvolution. If this project is being continued, it is crucial that we achieive a proof of principle for our method. To do so, I strongly suggest the following: Create a script which generates an electric field in Fourier space E(tau,f_D); computes the corresponding intensity I(f,t); builds a complete block Toeplitz matrix Inm using this intensity; directly computes the Cholesky factor of Inm using, e.g., np.linalg.cholesky(); and retrieves the original electric field from the  Cholesky factor. 
+ 
+There are a areas in the method which are likely to be causing us problems:
+1. We don't know exactly how the block Toeplitz matrix Inm should be constructed. It may be that we are making a mistake in the extraction routine which prevents the deconvolution from working correctly.
+
+2. We don't know how the electric field should be reconstructed from the Cholesky factor. For example, the code currently constructs the electric field using the **first row and column** of the *n* right-most lower blocks of the Cholesky factor. Some tests suggested that the middle rows and columns of the *n* right-most blocks should be used, but using these does not fix the problem in general. 
