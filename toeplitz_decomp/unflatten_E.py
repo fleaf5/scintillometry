@@ -23,4 +23,6 @@ Eft_res_domain = Eft_res_domain/np.sqrt(np.mean(np.absolute(Eft_res_domain)**2))
 E_tilde_res_domain = np.fft.fft2(Eft_res_domain)
 
 # E_tilde_res_domain is E(tau, f_D). It has the same size as the input spectrum. It is normalized such that <|E(f,t)|^2>=1. 
-np.save(result_dir+"/E_tilde.npy",E_tilde_res_domain)
+#np.save(result_dir+"/E_tilde.npy",E_tilde_res_domain)
+np.save("results/E_tilde_"+\
+"numblock_%s_meff_%s_offsetn_%s_offsetm_%s_uc.npy" %(str(n),str(meff),str(offsetn),str(offsetm)),E_tilde_res_domain)

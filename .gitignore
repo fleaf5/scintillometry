@@ -1,0 +1,7 @@
+#ignore data output
+**/results/
+**/processedData/
+**/*.pyc
+**/*.err
+**/*.out
+
